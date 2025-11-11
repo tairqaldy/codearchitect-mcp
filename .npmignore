@@ -17,6 +17,7 @@ jest.config.js
 # IDE
 .vscode/
 .idea/
+.cursor/
 
 # OS
 .DS_Store
@@ -32,4 +33,7 @@ Thumbs.db
 # Test coverage
 coverage/
 .nyc_output/
+
+# Session storage (user data, not part of package)
+.codearchitect/
 
