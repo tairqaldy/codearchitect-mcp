@@ -36,9 +36,136 @@ npm link
 
 ## Setup in Cursor/VS Code
 
-### Cursor
+The MCP server needs to know which workspace directory to use. You can configure it in two ways:
 
-Add to your Cursor MCP settings (`~/.cursor/mcp.json` or workspace settings):
+### Option 1: Workspace-Specific Configuration (Recommended)
+
+Configure the MCP server per workspace so sessions are saved in each project's `.codearchitect/sessions/` folder.
+
+**What this means**: You'll create a configuration file in each project folder (like `package.json`). This tells the MCP server where to save sessions for that specific project.
+
+#### Cursor - Step by Step
+
+1. **Open your project folder** in Cursor IDE
+
+2. **Create the configuration folder**:
+   - In your project root (same folder as `package.json`), create a folder named `.cursor`
+   - If the folder already exists, skip this step
+
+3. **Create the configuration file**:
+   - Inside the `.cursor` folder, create a file named `mcp.json`
+   - Copy and paste this content:
+   ```json
+   {
+     "mcpServers": {
+       "codearchitect": {
+         "command": "codearchitect-mcp",
+         "cwd": "${workspaceFolder}",
+         "env": {
+           "CODEARCHITECT_SESSIONS_DIR": "${workspaceFolder}/.codearchitect/sessions"
+         }
+       }
+     }
+   }
+   ```
+
+   **Optional: Custom sessions directory**
+   - To store sessions in a custom location (e.g., a global folder for all projects), change the `CODEARCHITECT_SESSIONS_DIR` value:
+   ```json
+   {
+     "mcpServers": {
+       "codearchitect": {
+         "command": "codearchitect-mcp",
+         "cwd": "${workspaceFolder}",
+         "env": {
+           "CODEARCHITECT_SESSIONS_DIR": "C:/Users/YourName/Documents/ai-sessions"
+         }
+       }
+     }
+   }
+   ```
+
+4. **Save the file** and restart Cursor (or reload the MCP server)
+
+**Your project structure should look like this:**
+```
+your-project/
+├── package.json          ← Your existing project files
+├── .git/                ← Git folder
+├── .cursor/             ← You create this folder
+│   └── mcp.json         ← You create this file with the config above
+└── src/                 ← Your code
+```
+
+**For multiple projects**: Repeat these steps in each project folder. Each project will have its own `.cursor/mcp.json` file, and sessions will be saved in that project's `.codearchitect/sessions/` folder.
+
+#### VS Code - Step by Step
+
+1. **Open your project folder** in VS Code
+
+2. **Create the configuration folder**:
+   - In your project root (same folder as `package.json`), create a folder named `.vscode`
+   - If the folder already exists, skip this step
+
+3. **Create or edit the settings file**:
+   - Inside the `.vscode` folder, create or edit a file named `settings.json`
+   - If the file already exists, add the `mcp.servers` section to it
+   - Copy and paste this content (or merge with existing content):
+   ```json
+   {
+     "mcp.servers": {
+       "codearchitect": {
+         "command": "codearchitect-mcp",
+         "cwd": "${workspaceFolder}",
+         "env": {
+           "CODEARCHITECT_SESSIONS_DIR": "${workspaceFolder}/.codearchitect/sessions"
+         }
+       }
+     }
+   }
+   ```
+
+   **Optional: Custom sessions directory**
+   - To store sessions in a custom location (e.g., a global folder for all projects), change the `CODEARCHITECT_SESSIONS_DIR` value:
+   ```json
+   {
+     "mcp.servers": {
+       "codearchitect": {
+         "command": "codearchitect-mcp",
+         "cwd": "${workspaceFolder}",
+         "env": {
+           "CODEARCHITECT_SESSIONS_DIR": "C:/Users/YourName/Documents/ai-sessions"
+         }
+       }
+     }
+   }
+   ```
+
+4. **Save the file** and restart VS Code (or reload the MCP server)
+
+**Your project structure should look like this:**
+```
+your-project/
+├── package.json          ← Your existing project files
+├── .git/                ← Git folder
+├── .vscode/             ← You create this folder (if it doesn't exist)
+│   └── settings.json    ← You create/edit this file with the config above
+└── src/                 ← Your code
+```
+
+**For multiple projects**: Repeat these steps in each project folder. Each project will have its own `.vscode/settings.json` file.
+
+**Sessions storage**: By default, sessions are saved in each project's `.codearchitect/sessions/` folder. To use a global folder for all sessions, set `CODEARCHITECT_SESSIONS_DIR` in the `env` section (see example above).
+
+### Option 2: Global Configuration with Auto-Detection
+
+If you prefer a global configuration, the server will auto-detect the project root by walking up from the current directory looking for project markers (`package.json`, `.git`, etc.).
+
+**Note**: This is less reliable than Option 1. Option 1 is recommended for the best experience.
+
+#### Cursor
+
+Add to your global MCP settings (`~/.cursor/mcp.json`):
 
 ```json
 {
@@ -50,19 +177,50 @@ Add to your Cursor MCP settings (`~/.cursor/mcp.json` or workspace settings):
 }
 ```
 
-### VS Code
+**Note**: With this configuration, the server uses `process.cwd()` as the starting point. For best results, ensure your IDE opens projects from their root directories.
 
-Add to your VS Code settings (`.vscode/settings.json`):
+### How Sessions Directory is Determined
 
-```json
-{
-  "mcp.servers": {
-    "codearchitect": {
-      "command": "codearchitect-mcp"
-    }
-  }
-}
-```
+The server determines where to save sessions in this priority order:
+
+1. **Tool parameter** (`sessionsDir`): If provided when calling `store_session`, this takes highest priority
+2. **Environment variable** (`CODEARCHITECT_SESSIONS_DIR`): Set in your MCP configuration's `env` section
+3. **Default**: `.codearchitect/sessions/` in the detected project root
+
+**Examples:**
+
+- **Per-project storage** (default): Sessions saved in each project's `.codearchitect/sessions/` folder
+- **Global storage**: Set `CODEARCHITECT_SESSIONS_DIR` to a single folder (e.g., `C:/Users/YourName/Documents/ai-sessions`) to store all sessions in one place
+- **Custom per-project**: Set different `CODEARCHITECT_SESSIONS_DIR` values in each project's configuration
+
+### How It Works
+
+1. **With `cwd` set** (Option 1): The server starts from the specified workspace directory and looks for project markers (like `package.json` or `.git`) to determine the project root.
+
+2. **Without `cwd`** (Option 2): The server starts from `process.cwd()` (usually your home directory or where the IDE was launched) and walks up the directory tree to find the nearest project root.
+
+3. **Session storage**: Once the project root is detected, sessions are saved according to the priority above (tool parameter → env var → default).
+
+### Recommended Setup
+
+For the best experience across multiple projects:
+
+1. **Use workspace-specific configuration** (Option 1) in each project
+2. **Choose your storage strategy**:
+   - **Per-project** (default): Don't set `CODEARCHITECT_SESSIONS_DIR` - sessions saved in each project's `.codearchitect/sessions/`
+   - **Global folder**: Set `CODEARCHITECT_SESSIONS_DIR` to a single folder in your global MCP config (`~/.cursor/mcp.json`) to store all sessions in one place
+   - **Mixed**: Use per-project configs with different `CODEARCHITECT_SESSIONS_DIR` values for different storage needs
+3. Sessions are automatically organized by date within the chosen directory
+
+### Troubleshooting
+
+If sessions are being saved in the wrong location:
+
+1. **Check your `cwd` setting**: Ensure it points to your workspace root
+2. **Verify project markers**: The server looks for `package.json`, `.git`, or `.codearchitect` to identify project roots
+3. **Check the file path**: The response from `store_session` includes the full file path - verify it's correct
+4. **Restart your IDE**: After creating/editing configuration files, restart Cursor/VS Code
+5. See [Troubleshooting Guide](./docs/TROUBLESHOOTING.md) for more help
 
 ## Usage
 
@@ -105,7 +263,7 @@ AI: Let's implement JWT-based authentication...
 
 ---
 
-*Generated by CodeArchitect MCP v0.1.0*
+*Generated by CodeArchitect MCP v0.1.1*
 ```
 
 ## File Structure
@@ -137,6 +295,7 @@ Stores an AI conversation session as a markdown file.
 - `format` (string, optional): Format of conversation input
   - `"plain"` (default): Plain text conversation
   - `"messages"`: JSON array of message objects with `role` and `content`
+- `sessionsDir` (string, optional): Custom directory for storing sessions. If not provided, uses `CODEARCHITECT_SESSIONS_DIR` environment variable or defaults to `.codearchitect/sessions/` in project root
 
 #### Response
 
@@ -279,7 +438,16 @@ Future features planned:
 
 ## Changelog
 
-### v0.1.0 (Current)
+### v0.1.1 (Current)
+
+- **Configurable sessions directory**: Customize where sessions are stored
+  - New `sessionsDir` parameter for per-call customization
+  - `CODEARCHITECT_SESSIONS_DIR` environment variable support
+  - Priority: tool parameter → env var → default
+- Enhanced workspace detection
+- Improved documentation and setup instructions
+
+### v0.1.0
 
 - Initial release
 - `store_session` tool
@@ -287,4 +455,6 @@ Future features planned:
 - Smart topic extraction
 - Markdown formatting
 - Comprehensive error handling
+
+See [CHANGELOG.md](./CHANGELOG.md) for detailed version history.
 

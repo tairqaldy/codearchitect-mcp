@@ -3,11 +3,55 @@ import { join, dirname, resolve, parse } from 'path';
 import { mkdir, writeFile as fsWriteFile } from 'fs/promises';
 
 /**
+ * Gets the workspace directory from environment variables or falls back to process.cwd()
+ * This function prioritizes environment variables, then walks up looking for project markers
+ */
+function getWorkspaceDir(): string {
+  // Check common IDE environment variables first
+  const envVars = [
+    'VSCODE_CWD',           // VS Code
+    'CURSOR_CWD',          // Cursor
+    'WORKSPACE_FOLDER',    // Generic workspace
+    'PROJECT_ROOT',        // Generic project root
+    'PWD',                 // Current working directory (set by some shells)
+  ];
+
+  for (const envVar of envVars) {
+    const value = process.env[envVar];
+    if (value) {
+      return resolve(value);
+    }
+  }
+
+  // Fallback to process.cwd() - let detectProjectRoot handle the walking up
+  return process.cwd();
+}
+
+/**
+ * Gets the sessions directory from environment variable or uses default
+ */
+export function getSessionsDirectory(projectRoot: string, customDir?: string): string {
+  // Priority 1: Custom directory provided via parameter
+  if (customDir) {
+    return resolve(customDir);
+  }
+
+  // Priority 2: Environment variable
+  const envDir = process.env.CODEARCHITECT_SESSIONS_DIR;
+  if (envDir) {
+    return resolve(envDir);
+  }
+
+  // Priority 3: Default to project's .codearchitect/sessions/
+  return join(projectRoot, '.codearchitect', 'sessions');
+}
+
+/**
  * Detects the project root by walking up from the current directory
  * looking for common project markers.
  */
-export function detectProjectRoot(startDir: string = process.cwd()): string {
-  const startPath = resolve(startDir);
+export function detectProjectRoot(startDir?: string): string {
+  const startPath = startDir ? resolve(startDir) : getWorkspaceDir();
   let current = startPath;
   const root = parse(current).root;
 

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "codearchitect": {
+      "command": "codearchitect-mcp",
+      "cwd": "${workspaceFolder}"
+    }
+  }
+}

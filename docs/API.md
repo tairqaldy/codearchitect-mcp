@@ -12,7 +12,8 @@ Stores an AI conversation session as a markdown file in `.codearchitect/sessions
   arguments: {
     conversation: string | Message[],  // Required
     topic?: string,                      // Optional
-    format?: "plain" | "messages"        // Optional, default: "plain"
+    format?: "plain" | "messages",       // Optional, default: "plain"
+    sessionsDir?: string                // Optional: Custom directory for sessions
   }
 }
 ```
@@ -147,7 +148,42 @@ interface Message {
 }
 ```
 
-#### Example 3: Error Response
+#### Example 3: Custom Sessions Directory
+
+**Request:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "method": "tools/call",
+  "params": {
+    "name": "store_session",
+    "arguments": {
+      "conversation": "User: Review code\nAI: I'll review your code...",
+      "topic": "Code Review",
+      "sessionsDir": "/custom/path/to/sessions"
+    }
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"success\":true,\"file\":\"/custom/path/to/sessions/2025-01-15/session-20250115-160000-code-review.md\",\"filename\":\"session-20250115-160000-code-review.md\",\"topic\":\"code-review\",\"date\":\"2025-01-15T16:00:00.000Z\",\"message\":\"Session saved to session-20250115-160000-code-review.md\"}"
+      }
+    ]
+  }
+}
+```
+
+#### Example 4: Error Response
 
 **Request:**
 ```json
@@ -226,6 +262,22 @@ If a file with the same name exists, a counter is appended:
 - `session-20250115-143022-topic-1.md`
 - `session-20250115-143022-topic-2.md`
 - etc.
+
+### Sessions Directory Configuration
+
+The sessions directory is determined by the following priority order:
+
+1. **Tool parameter** (`sessionsDir`): If provided in the tool call, this takes highest priority
+2. **Environment variable** (`CODEARCHITECT_SESSIONS_DIR`): Set in MCP configuration's `env` section
+3. **Default**: `.codearchitect/sessions/` in the detected project root
+
+**Examples:**
+
+- **Per-project storage** (default): Sessions saved in each project's `.codearchitect/sessions/` folder
+- **Global storage**: Set `CODEARCHITECT_SESSIONS_DIR` to a single folder to store all sessions in one place
+- **Custom per-call**: Pass `sessionsDir` parameter to override for specific calls
+
+See the [README](../README.md) for detailed configuration examples.
 
 ### Limits
 

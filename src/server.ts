@@ -14,7 +14,7 @@ import { handleError } from './session/errors.js';
 const server = new Server(
   {
     name: 'codearchitect-mcp',
-    version: '0.1.0',
+    version: '0.1.1',
   },
   {
     capabilities: {
@@ -49,6 +49,10 @@ server.setRequestHandler(ListToolsRequestSchema, async (): Promise<ListToolsResu
               description: 'Format of conversation input. "plain" for text, "messages" for JSON array. Default: "plain"',
               default: 'plain',
             },
+            sessionsDir: {
+              type: 'string',
+              description: 'Optional: Custom directory for storing sessions. If not provided, uses CODEARCHITECT_SESSIONS_DIR env var or defaults to .codearchitect/sessions/ in project root.',
+            },
           },
           required: ['conversation'],
         },
@@ -74,6 +78,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
       conversation: conversation as string | Array<{ role: string; content: unknown }>,
       topic: args.topic as string | undefined,
       format: (args.format as 'plain' | 'messages') || 'plain',
+      sessionsDir: args.sessionsDir as string | undefined,
     });
 
     return {

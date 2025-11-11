@@ -1,5 +1,5 @@
 import { StoreSessionParams, StoreSessionResult } from './types.js';
-import { detectProjectRoot, ensureDirectory, generateFilename, writeFile, validatePath } from '../utils/filesystem.js';
+import { detectProjectRoot, ensureDirectory, generateFilename, writeFile, validatePath, getSessionsDirectory } from '../utils/filesystem.js';
 import { extractTopic } from '../utils/topic.js';
 import { formatMarkdown } from '../utils/markdown.js';
 import { validateInput } from '../utils/validation.js';
@@ -42,8 +42,10 @@ export class SessionManager {
       const topic = extractTopic(conversationText, params.topic);
 
       // 3. Detect project root
+      // Try to detect from workspace environment variables first, then fall back to process.cwd()
       let projectRoot: string;
       try {
+        // Pass undefined to use workspace detection from environment variables
         projectRoot = detectProjectRoot();
       } catch (error) {
         // Non-fatal: use current directory
@@ -51,14 +53,12 @@ export class SessionManager {
         warning = warning ? `${warning}; Using current directory as project root` : 'Using current directory as project root';
       }
 
-      const sessionsDir = join(projectRoot, '.codearchitect', 'sessions');
-      const date = new Date();
-      const dateFolder = date.toISOString().split('T')[0];
-      const fullSessionsDir = join(sessionsDir, dateFolder);
+      // 4. Get sessions directory (custom, env var, or default)
+      const sessionsDir = getSessionsDirectory(projectRoot, params.sessionsDir);
 
-      // 4. Ensure directory exists
+      // Ensure sessions directory exists
       try {
-        await ensureDirectory(fullSessionsDir);
+        await ensureDirectory(sessionsDir);
       } catch (error) {
         throw new SessionError(
           'DIRECTORY_CREATION_ERROR',
@@ -67,7 +67,22 @@ export class SessionManager {
         );
       }
 
-      // 5. Generate filename
+      const date = new Date();
+      const dateFolder = date.toISOString().split('T')[0];
+      const fullSessionsDir = join(sessionsDir, dateFolder);
+
+      // 5. Ensure date folder exists
+      try {
+        await ensureDirectory(fullSessionsDir);
+      } catch (error) {
+        throw new SessionError(
+          'DIRECTORY_CREATION_ERROR',
+          'Failed to create date directory',
+          error instanceof Error ? error.message : String(error)
+        );
+      }
+
+      // 6. Generate filename
       let filename: string;
       try {
         filename = await generateFilename(date, topic, sessionsDir);
@@ -79,18 +94,23 @@ export class SessionManager {
         );
       }
 
-      // 6. Format markdown
+      // 7. Format markdown
       const markdown = formatMarkdown(
         params.conversation,
         topic,
         params.format || 'plain'
       );
 
-      // 7. Write file
+      // 8. Write file
       const filePath = join(fullSessionsDir, filename);
 
       // Security check: validate path
-      if (!validatePath(filePath, projectRoot)) {
+      // If custom directory is outside project, validate against sessionsDir instead
+      const validationBase = params.sessionsDir || process.env.CODEARCHITECT_SESSIONS_DIR 
+        ? sessionsDir 
+        : projectRoot;
+      
+      if (!validatePath(filePath, validationBase)) {
         throw new SessionError('FILE_WRITE_ERROR', 'Invalid file path detected');
       }
 
