@@ -9,7 +9,7 @@ export function formatMarkdown(
   format: 'plain' | 'messages' = 'plain'
 ): string {
   const date = new Date().toISOString();
-  const version = '0.1.1';
+  const version = '0.1.2';
 
   let conversationText: string;
 

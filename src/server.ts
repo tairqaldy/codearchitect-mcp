@@ -14,7 +14,7 @@ import { handleError } from './session/errors.js';
 const server = new Server(
   {
     name: 'codearchitect-mcp',
-    version: '0.1.1',
+    version: '0.1.2',
   },
   {
     capabilities: {

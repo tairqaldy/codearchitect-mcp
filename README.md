@@ -19,7 +19,7 @@ A Model Context Protocol (MCP) server designed to assist with system design, arc
 
 CodeArchitect MCP is evolving into a comprehensive toolkit for system design and architecture projects. The current `store_session` feature is just the beginning.
 
-### Current Features (v0.1.1)
+### Current Features (v0.1.2)
 - ✅ **`store_session`**: Save AI conversation sessions as organized markdown files
 - ✅ Auto-organization by date
 - ✅ Smart topic extraction
@@ -402,7 +402,18 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ## 📊 Changelog
 
 <details>
-<summary><b>v0.1.1 (Current)</b></summary>
+<summary><b>v0.1.2 (Current)</b></summary>
+
+- **Complete README restructure**: Improved documentation with collapsible sections
+- Added Vision & Roadmap section outlining future architecture tools
+- Added Important Links and Project Status sections
+- Enhanced VS Code setup guide with wizard instructions
+- Updated `.npmignore` to exclude development folders from npm package
+
+</details>
+
+<details>
+<summary><b>v0.1.1</b></summary>
 
 - **Configurable sessions directory**: Customize where sessions are stored
   - New `sessionsDir` parameter for per-call customization

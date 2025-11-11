@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2025-11-11
+
+### Changed
+- **Complete README restructure**: Improved documentation with collapsible sections for better readability
+  - Added Vision & Roadmap section outlining future architecture and system design tools
+  - Added Important Links section (npm package, GitHub, author profile)
+  - Added Project Status disclaimer about active development
+  - Added "Suggest a Feature" section with multiple contact methods
+  - Enhanced Contributing section with development setup guide
+  - Updated VS Code setup instructions to match actual wizard workflow
+  - Reorganized content with collapsible sections for Installation, Setup, Usage, API Reference, Troubleshooting
+- Updated `.npmignore` to exclude `.cursor/` and `.codearchitect/` folders from npm package
+
+### Documentation
+- Enhanced README with comprehensive usage examples and storage location explanations
+- Improved VS Code setup guide with step-by-step wizard instructions
+- Added project vision explaining evolution into architecture assistance toolkit
+- Clarified that `store_session` is the first of many planned features
+
+[0.1.2]: https://github.com/tairqaldy/codearchitect-mcp/releases/tag/v0.1.2
+
 ## [0.1.1] - 2025-11-11
 
 ### Added
