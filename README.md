@@ -1,6 +1,6 @@
 # CodeArchitect MCP
 
-> **🚧 Project Status**: This project is actively in development. While `store_session` is production-ready, additional features are being built. If you encounter bugs or have suggestions, please reach out - I'm committed to fixing issues quickly and incorporating feedback!
+> **🚧 Project Status**: This project is actively in development. While `store_session` is production-ready and tested, additional features are being built. If you encounter bugs or have suggestions, please reach out - I'm committed to fixing issues quickly! Report issues via [GitHub Issues](https://github.com/tairqaldy/codearchitect-mcp/issues) or [Telegram](https://t.me/tairqaldy).
 
 A Model Context Protocol (MCP) server designed to assist with system design, architecture, and development workflows. Currently featuring session storage, with plans to expand into comprehensive architecture assistance tools.
 
@@ -15,6 +15,25 @@ A Model Context Protocol (MCP) server designed to assist with system design, arc
 - **👨‍💻 Author**: [Tair Kaldybayev](https://tairkaldybayev.link/) - Fullstack Software Engineer
 - **📧 Contact**: Reach out via [GitHub](https://github.com/tairqaldy) or [Telegram](https://t.me/tairqaldy)
 
+## ❓ Why Use CodeArchitect MCP?
+
+CodeArchitect MCP solves a critical problem: **losing valuable AI conversations**. When working on complex projects, especially system design and architecture, important discussions with AI assistants often disappear into the void.
+
+**Key Benefits:**
+- 📚 **Preserve Knowledge**: Save important conversations for future reference
+- 🗂️ **Organize Thoughts**: Keep architectural discussions organized by date and topic
+- 🔍 **Searchable**: Sessions are markdown files - searchable with grep, IDE search, or git
+- 🚀 **Zero Configuration**: Works out of the box with auto-detected project roots
+- 🔒 **Version Controlled**: Sessions are just files - commit them to git for history
+
+**Perfect For:**
+- System design discussions
+- Architecture decision tracking
+- Development workflow documentation
+- Building a searchable knowledge base from AI conversations
+
+Want to learn more? Check out our [FAQ](./docs/FAQ.md) for detailed explanations of how it works, why it exists, and how to use it effectively.
+
 ## 🎯 Vision & Roadmap
 
 CodeArchitect MCP is evolving into a comprehensive toolkit for system design and architecture projects. The current `store_session` feature is just the beginning.
@@ -25,7 +44,8 @@ CodeArchitect MCP is evolving into a comprehensive toolkit for system design and
 - ✅ Smart topic extraction
 - ✅ Configurable storage locations
 
-### Planned Features
+<details>
+<summary><b>Planned Features</b></summary>
 
 #### Session Management
 - `list_sessions` - Browse and filter all stored sessions
@@ -55,13 +75,47 @@ CodeArchitect MCP is evolving into a comprehensive toolkit for system design and
 
 **Want to see a feature?** [Suggest it](#-suggest-a-feature) or [contribute](#-contributing)!
 
+</details>
+
 ## ⚡ Quick Start
 
+### Prerequisites
+
+Before installing CodeArchitect MCP, ensure you have:
+
+- **Node.js** (v18 or higher) - [Download Node.js](https://nodejs.org/)
+- **npm** (comes with Node.js) - Verify with `npm --version`
+- **An IDE with MCP support**:
+  - **VS Code** (recommended) - Built-in MCP support
+  - **Cursor** - Native MCP support
+  - Other IDEs may require MCP extensions
+
+**Verify Installation:**
 ```bash
-npm install -g codearchitect-mcp
+node --version  # Should show v18.0.0 or higher
+npm --version   # Should show 9.0.0 or higher
 ```
 
-Then configure in your IDE (see setup guides below).
+### Installation Steps
+
+1. **Install CodeArchitect MCP globally:**
+   ```bash
+   npm install -g codearchitect-mcp
+   ```
+
+2. **Verify installation:**
+   ```bash
+   codearchitect-mcp --version
+   ```
+
+3. **Configure in your IDE** (see setup guides below)
+
+4. **Start using AI agents** - Simply ask your AI assistant to store conversations!
+
+**What's Next?**
+- See [Setup](#️-setup) for IDE configuration
+- Check [Usage](#-usage) for examples
+- Read [FAQ](./docs/FAQ.md) for detailed information
 
 ## 📋 Features
 
@@ -157,7 +211,17 @@ VS Code has a built-in MCP server setup wizard that makes installation easy:
    }
    ```
 
-3. **Restart Cursor** or reload the MCP server
+3. **Enable the MCP server**:
+   - Go to **Settings** → **MCP & Tools** (or search for "MCP" in settings)
+   - Find the `codearchitect` server in the list
+   - **Toggle it ON** to enable the server
+
+4. **Verify it's working**:
+   - Look for a **green dot** next to the server name (indicates it's running)
+   - Check that **available tools** are listed (you should see `store_session`)
+   - If there's an error, it will be displayed - check the error message for troubleshooting
+
+5. **Restart Cursor** if needed (usually not required, but helps if the server doesn't start)
 
 **For multiple projects**: Repeat these steps in each project folder.
 
@@ -325,7 +389,8 @@ See [Troubleshooting Guide](./docs/TROUBLESHOOTING.md) for more help.
 
 </details>
 
-## 💬 Suggest a Feature
+<details>
+<summary><b>💬 Suggest a Feature</b></summary>
 
 Have an idea for CodeArchitect MCP? I'd love to hear it!
 
@@ -344,7 +409,10 @@ Have an idea for CodeArchitect MCP? I'd love to hear it!
 
 I'm actively developing this project and prioritize features based on user needs. Your feedback shapes the roadmap!
 
-## 🤝 Contributing
+</details>
+
+<details>
+<summary><b>🤝 Contributing</b></summary>
 
 Contributions are welcome and appreciated! Whether it's code, documentation, bug reports, or feature ideas.
 
@@ -377,18 +445,8 @@ npm test
 
 See [Contributing Guide](./docs/CONTRIBUTING.md) for detailed guidelines.
 
-## 📝 Disclaimer
+</details>
 
-**Project Status**: CodeArchitect MCP is actively in development. While the `store_session` feature is production-ready and tested, the project is evolving with new features being added regularly.
-
-**Bugs & Issues**: If you encounter any bugs or issues:
-- **Report them**: [GitHub Issues](https://github.com/tairqaldy/codearchitect-mcp/issues)
-- **Contact me directly**: I'm committed to fixing bugs quickly
-  - [Telegram](https://t.me/tairqaldy)
-  - [GitHub](https://github.com/tairqaldy)
-- **Be patient**: I'm actively maintaining this project and will address issues promptly
-
-**Feedback Welcome**: Your feedback, suggestions, and contributions help make this project better. Don't hesitate to reach out!
 
 ## 📄 License
 

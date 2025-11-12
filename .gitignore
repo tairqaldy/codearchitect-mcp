@@ -41,3 +41,5 @@ dev-docs/
 test-sessions/
 .codearchitect/
 
+# Development TODO list
+TODO.md
