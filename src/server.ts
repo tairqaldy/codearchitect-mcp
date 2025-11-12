@@ -14,7 +14,7 @@ import { handleError } from './session/errors.js';
 const server = new Server(
   {
     name: 'codearchitect-mcp',
-    version: '0.1.2',
+    version: '0.1.3',
   },
   {
     capabilities: {
@@ -37,7 +37,7 @@ server.setRequestHandler(ListToolsRequestSchema, async (): Promise<ListToolsResu
           properties: {
             conversation: {
               type: 'string',
-              description: 'Full conversation text or JSON array of messages. Required.',
+              description: 'Current conversation thread text or JSON array of messages. Should only include messages from the current session, not from previous stored sessions. Required.',
             },
             topic: {
               type: 'string',

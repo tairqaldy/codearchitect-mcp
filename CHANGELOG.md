@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2025-11-12
+
+### Fixed
+- **Session boundary issue**: Fixed problem where `store_session` was including conversation data from previous sessions in new session storage
+- Updated tool description to clarify that only the current conversation thread should be passed, not data from previous stored sessions
+- Ensures each stored session only contains messages from the current session context
+
+### Changed
+- Enhanced `store_session` tool description to explicitly state that only current session data should be included
+
+[0.1.3]: https://github.com/tairqaldy/codearchitect-mcp/releases/tag/v0.1.3
+
 ## [0.1.2] - 2025-11-11
 
 ### Changed
