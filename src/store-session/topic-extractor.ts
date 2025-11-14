@@ -66,3 +66,4 @@ function extractKeywords(text: string): string[] {
 
   return words.map((word) => word.toLowerCase().replace(/[^a-z0-9]/g, ''));
 }
+

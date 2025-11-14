@@ -1,5 +1,5 @@
-import { SessionManager } from '../../src/session/SessionManager.js';
-import { StoreSessionParams } from '../../src/session/types.js';
+import { SessionStoreManager } from '../../src/store-session/index.js';
+import type { StoreSessionParams } from '../../src/store-session/types.js';
 import { mkdtemp, writeFile, rm } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
@@ -7,11 +7,11 @@ import { existsSync } from 'fs';
 
 describe('SessionManager', () => {
   let tempDir: string;
-  let sessionManager: SessionManager;
+  let sessionStoreManager: SessionStoreManager;
   const originalCwd = process.cwd();
 
   beforeEach(() => {
-    sessionManager = new SessionManager();
+    sessionStoreManager = new SessionStoreManager();
   });
 
   describe('storeSession', () => {
@@ -46,7 +46,7 @@ describe('SessionManager', () => {
         format: 'plain',
       };
 
-      const result = await sessionManager.storeSession(params);
+      const result = await sessionStoreManager.storeSession(params);
 
       expect(result.success).toBe(true);
       expect(result.file).toBeDefined();
@@ -69,7 +69,7 @@ describe('SessionManager', () => {
         format: 'messages',
       };
 
-      const result = await sessionManager.storeSession(params);
+      const result = await sessionStoreManager.storeSession(params);
 
       expect(result.success).toBe(true);
       expect(result.file).toBeDefined();
@@ -82,11 +82,11 @@ describe('SessionManager', () => {
       };
 
       // Create first file
-      const result1 = await sessionManager.storeSession(params);
+      const result1 = await sessionStoreManager.storeSession(params);
       expect(result1.success).toBe(true);
 
       // Create second file with same topic (should get -1 suffix)
-      const result2 = await sessionManager.storeSession(params);
+      const result2 = await sessionStoreManager.storeSession(params);
       expect(result2.success).toBe(true);
       expect(result2.filename).toContain('-1.md');
     });
@@ -97,7 +97,7 @@ describe('SessionManager', () => {
         format: 'plain',
       };
 
-      const result = await sessionManager.storeSession(params);
+      const result = await sessionStoreManager.storeSession(params);
 
       expect(result.success).toBe(true);
       expect(result.topic).toBeDefined();
@@ -110,7 +110,7 @@ describe('SessionManager', () => {
         topic: 'empty-test',
       };
 
-      const result = await sessionManager.storeSession(params);
+      const result = await sessionStoreManager.storeSession(params);
 
       expect(result.success).toBe(true);
       expect(result.warning).toBeDefined();
@@ -124,7 +124,7 @@ describe('SessionManager', () => {
         topic: 'long-test',
       };
 
-      const result = await sessionManager.storeSession(params);
+      const result = await sessionStoreManager.storeSession(params);
 
       expect(result.success).toBe(true);
       expect(result.warning).toBeDefined();
@@ -138,7 +138,7 @@ describe('SessionManager', () => {
         conversation: null,
       } as unknown as StoreSessionParams;
 
-      await expect(sessionManager.storeSession(params)).rejects.toThrow();
+      await expect(sessionStoreManager.storeSession(params)).rejects.toThrow();
     });
 
     it('should reject invalid format', async () => {
@@ -147,7 +147,7 @@ describe('SessionManager', () => {
         format: 'invalid' as 'plain',
       };
 
-      await expect(sessionManager.storeSession(params)).rejects.toThrow();
+      await expect(sessionStoreManager.storeSession(params)).rejects.toThrow();
     });
   });
 });

@@ -6,6 +6,7 @@ export default {
   testMatch: ['**/*.test.ts'],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
+    '^@toon-format/toon$': '<rootDir>/tests/__mocks__/toon.js',
   },
   transform: {
     '^.+\\.ts$': ['ts-jest', {

@@ -1,18 +1,18 @@
-import { SessionManager } from '../../src/session/SessionManager.js';
+import { SessionStoreManager } from '../../src/store-session/index.js';
 import { mkdtemp, writeFile, rm } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { existsSync, readFileSync } from 'fs';
-import { StoreSessionParams } from '../../src/session/types.js';
+import type { StoreSessionParams } from '../../src/store-session/types.js';
 
 describe('store_session integration', () => {
   let tempDir: string;
-  let sessionManager: SessionManager;
+  let sessionStoreManager: SessionStoreManager;
   const originalCwd = process.cwd();
 
   beforeEach(async () => {
     tempDir = await mkdtemp(join(tmpdir(), 'mcp-test-'));
-    sessionManager = new SessionManager();
+    sessionStoreManager = new SessionStoreManager();
 
     // Create mock project root
     await writeFile(join(tempDir, 'package.json'), '{}');
@@ -42,7 +42,7 @@ describe('store_session integration', () => {
       topic: 'test',
     };
 
-    const result = await sessionManager.storeSession(params);
+    const result = await sessionStoreManager.storeSession(params);
 
     expect(result.success).toBe(true);
     expect(result.file).toBeDefined();
@@ -63,7 +63,7 @@ describe('store_session integration', () => {
       topic: 'test',
     };
 
-    const result = await sessionManager.storeSession(params);
+    const result = await sessionStoreManager.storeSession(params);
 
     expect(result.success).toBe(true);
     expect(result.file).toBeDefined();
@@ -86,7 +86,7 @@ describe('store_session integration', () => {
       topic: 'empty-test',
     };
 
-    const result = await sessionManager.storeSession(params);
+    const result = await sessionStoreManager.storeSession(params);
     expect(result.success).toBe(true);
     expect(result.warning).toBeDefined();
     expect(result.warning).toContain('empty');
@@ -97,7 +97,7 @@ describe('store_session integration', () => {
       conversation: 'User: implement authentication',
     };
 
-    const result = await sessionManager.storeSession(params);
+    const result = await sessionStoreManager.storeSession(params);
 
     expect(result.success).toBe(true);
     expect(result.topic).toBeDefined();
@@ -116,8 +116,8 @@ describe('store_session integration', () => {
       topic: 'session-2',
     };
 
-    const result1 = await sessionManager.storeSession(params1);
-    const result2 = await sessionManager.storeSession(params2);
+    const result1 = await sessionStoreManager.storeSession(params1);
+    const result2 = await sessionStoreManager.storeSession(params2);
 
     expect(result1.success).toBe(true);
     expect(result2.success).toBe(true);

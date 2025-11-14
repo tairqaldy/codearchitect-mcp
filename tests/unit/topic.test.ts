@@ -1,4 +1,4 @@
-import { extractTopic } from '../../src/utils/topic.js';
+import { extractTopic } from '../../src/store-session/topic-extractor.js';
 
 describe('TopicExtraction', () => {
   it('should use provided topic', () => {

@@ -1,4 +1,4 @@
-import { formatMarkdown } from '../../src/utils/markdown.js';
+import { formatMarkdown } from '../../src/store-session/markdown-formatter.js';
 
 describe('MarkdownFormatting', () => {
   it('should format plain text conversation', () => {

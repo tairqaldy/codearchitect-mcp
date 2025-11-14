@@ -1,3 +1,7 @@
+/**
+ * Shared error handling utilities
+ */
+
 export class SessionError extends Error {
   constructor(
     public code: string,
@@ -43,3 +47,4 @@ export function handleError(error: unknown): { content: Array<{ type: 'text'; te
     ],
   };
 }
+

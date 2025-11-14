@@ -1,15 +1,16 @@
-import { Message } from '../session/types.js';
-
 /**
  * Formats a conversation into markdown format.
  */
+
+import type { Message } from '../shared/types.js';
+
 export function formatMarkdown(
   conversation: string | Message[],
   topic: string,
   format: 'plain' | 'messages' = 'plain'
 ): string {
   const date = new Date().toISOString();
-  const version = '0.1.3';
+  const version = '0.1.4';
 
   let conversationText: string;
 
@@ -50,3 +51,4 @@ function formatMessages(messages: Message[]): string {
     })
     .join('\n\n---\n\n');
 }
+

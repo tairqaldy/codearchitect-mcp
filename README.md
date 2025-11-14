@@ -1,8 +1,8 @@
 # CodeArchitect MCP
 
-> **🚧 Project Status**: This project is actively in development. While `store_session` is production-ready and tested, additional features are being built. If you encounter bugs or have suggestions, please reach out - I'm committed to fixing issues quickly! Report issues via [GitHub Issues](https://github.com/tairqaldy/codearchitect-mcp/issues) or [Telegram](https://t.me/tairqaldy).
+> **🚧 Project Status**: This project is actively in development. While `store_session` and `get_session` are production-ready and tested, additional features are being built. If you encounter bugs or have suggestions, please reach out - I'm committed to fixing issues quickly! Report issues via [GitHub Issues](https://github.com/tairqaldy/codearchitect-mcp/issues) or [Telegram](https://t.me/tairqaldy).
 
-A Model Context Protocol (MCP) server designed to assist with system design, architecture, and development workflows. Currently featuring session storage, with plans to expand into comprehensive architecture assistance tools.
+A Model Context Protocol (MCP) server designed to assist with system design, architecture, and development workflows. Features session storage and retrieval with TOON format support for ~40% token reduction, with plans to expand into comprehensive architecture assistance tools.
 
 [![npm version](https://img.shields.io/npm/v/codearchitect-mcp.svg)](https://www.npmjs.com/package/codearchitect-mcp)
 [![npm downloads](https://img.shields.io/npm/dm/codearchitect-mcp.svg)](https://www.npmjs.com/package/codearchitect-mcp)
@@ -25,6 +25,7 @@ CodeArchitect MCP solves a critical problem: **losing valuable AI conversations*
 - 🔍 **Searchable**: Sessions are markdown files - searchable with grep, IDE search, or git
 - 🚀 **Zero Configuration**: Works out of the box with auto-detected project roots
 - 🔒 **Version Controlled**: Sessions are just files - commit them to git for history
+- ⚡ **Token Optimization**: TOON format support reduces token usage by ~40% when retrieving sessions
 
 **Perfect For:**
 - System design discussions
@@ -38,21 +39,22 @@ Want to learn more? Check out our [FAQ](./docs/FAQ.md) for detailed explanations
 
 CodeArchitect MCP is evolving into a comprehensive toolkit for system design and architecture projects. The current `store_session` feature is just the beginning.
 
-### Current Features (v0.1.3)
+### Current Features (v0.1.4)
 - ✅ **`store_session`**: Save AI conversation sessions as organized markdown files
+- ✅ **`get_session`**: Retrieve stored sessions with TOON format support (~40% token reduction)
 - ✅ Auto-organization by date
 - ✅ Smart topic extraction
 - ✅ Configurable storage locations
+- ✅ **TOON Format**: Automatic token optimization for LLM interactions
 
 <details>
 <summary><b>Planned Features</b></summary>
 
 #### Session Management
-- `list_sessions` - Browse and filter all stored sessions
-- `get_session` - Retrieve specific session by ID, date, or topic
-- `search_sessions` - Full-text search across all sessions
-- `delete_session` - Remove sessions
-- `export_sessions` - Export sessions in various formats
+- ✅ `get_session` - Retrieve specific session by filename or list all sessions (with date filtering)
+- 🔜 `search_sessions` - Full-text search across all sessions
+- 🔜 `delete_session` - Remove sessions
+- 🔜 `export_sessions` - Export sessions in various formats
 
 #### Architecture & System Design Tools
 - `analyze_architecture` - Analyze project structure and suggest improvements
@@ -120,8 +122,10 @@ npm --version   # Should show 9.0.0 or higher
 ## 📋 Features
 
 - 📝 **Store Conversations**: Save AI conversation sessions as organized markdown files
+- 📖 **Retrieve Sessions**: Get specific sessions or list all sessions with date filtering
 - 🗂️ **Auto-Organization**: Automatically organizes sessions by date in `.codearchitect/sessions/`
 - 🔍 **Smart Topic Extraction**: Automatically extracts session topics from conversations
+- ⚡ **TOON Format Support**: ~40% token reduction when retrieving sessions for LLM interactions
 - 🚀 **Zero Configuration**: Works out of the box with auto-detected project roots
 - ⚡ **Fast & Reliable**: Optimized for performance with comprehensive error handling
 - 🔒 **Secure**: Validates file paths and prevents directory traversal attacks
@@ -218,7 +222,7 @@ VS Code has a built-in MCP server setup wizard that makes installation easy:
 
 4. **Verify it's working**:
    - Look for a **green dot** next to the server name (indicates it's running)
-   - Check that **available tools** are listed (you should see `store_session`)
+   - Check that **available tools** are listed (you should see `store_session` and `get_session`)
    - If there's an error, it will be displayed - check the error message for troubleshooting
 
 5. **Restart Cursor** if needed (usually not required, but helps if the server doesn't start)
@@ -292,6 +296,16 @@ Store this session with topic "Database Migration Strategy"
 Save our conversation about implementing JWT authentication
 ```
 
+**Example 4**: Retrieve a stored session
+```
+Get session session-20250115-143022-authentication-implementation.md
+```
+
+**Example 5**: List all sessions from a date
+```
+List all sessions from 2025-01-15
+```
+
 </details>
 
 <details>
@@ -361,7 +375,55 @@ Topics are extracted in this priority:
 }
 ```
 
-See [API Documentation](./docs/API.md) for complete details.
+</details>
+
+<details>
+<summary><b>Tool: get_session</b></summary>
+
+### Parameters
+
+- `filename` (string, optional): Specific session filename to retrieve. If not provided, lists all sessions
+- `date` (string, optional): Filter sessions by date (YYYY-MM-DD format). Only used when listing sessions
+- `format` (string, optional): `"json"` (default), `"toon"` (~40% token reduction), or `"auto"` (automatically chooses best format)
+- `limit` (number, optional): Limit number of sessions returned when listing
+- `sessionsDir` (string, optional): Custom directory for storing sessions
+
+### Response
+
+**Get Specific Session**:
+```json
+{
+  "success": true,
+  "session": {
+    "filename": "session-20250115-143022-topic.md",
+    "topic": "topic",
+    "date": "2025-01-15T14:30:22.123Z",
+    "file": "/path/to/session.md",
+    "content": "# topic\n\nConversation content...",
+    "format": "toon"
+  }
+}
+```
+
+**List Sessions**:
+```json
+{
+  "success": true,
+  "sessions": [
+    {
+      "filename": "session-20250115-143022-topic.md",
+      "topic": "topic",
+      "date": "2025-01-15T14:30:22.123Z",
+      "file": "/path/to/session.md",
+      "size": 2048
+    }
+  ],
+  "count": 1,
+  "format": "toon"
+}
+```
+
+**TOON Format**: Automatically reduces token usage by ~40% for uniform data structures (message arrays, session lists). Falls back to JSON for non-uniform data.
 
 </details>
 
@@ -443,6 +505,41 @@ npm test
 - Write tests for new features
 - Maintain 80%+ test coverage
 
+### Project Structure (v0.1.4+)
+
+The codebase uses a **feature-based folder structure** for better organization and scalability:
+
+```
+src/
+├── server.ts                    # Main MCP server entry point
+├── store-session/              # Store session feature
+│   ├── SessionStoreManager.ts  # Core store logic
+│   ├── markdown-formatter.ts   # Formats conversations to markdown
+│   ├── topic-extractor.ts      # Extracts topics from conversations
+│   ├── input-validator.ts      # Validates store_session inputs
+│   ├── types.ts                # StoreSessionParams, StoreSessionResult
+│   └── index.ts                # Feature exports
+├── get-session/                # Get session feature
+│   ├── SessionRetrievalManager.ts  # Core retrieval logic
+│   ├── markdown-parser.ts      # Parses stored markdown files
+│   ├── toon-formatter.ts       # TOON format encoding (~40% token reduction)
+│   ├── types.ts                # GetSessionParams, GetSessionResult, SessionInfo
+│   └── index.ts                # Feature exports
+└── shared/                     # Shared utilities across features
+    ├── filesystem.ts           # File operations (read, write, list, etc.)
+    ├── errors.ts               # SessionError, handleError
+    ├── types.ts                # Message (shared type)
+    └── index.ts                # Shared exports
+```
+
+**Benefits:**
+- ✅ Clear feature separation - each feature is self-contained
+- ✅ Better scalability - easy to add new features
+- ✅ Improved maintainability - related files grouped together
+- ✅ Easier testing - feature-specific tests mirror structure
+
+See [Folder Structure Guide](./dev-docs/FOLDER_STRUCTURE.md) for detailed information.
+
 See [Contributing Guide](./docs/CONTRIBUTING.md) for detailed guidelines.
 
 </details>
@@ -460,7 +557,36 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ## 📊 Changelog
 
 <details>
-<summary><b>v0.1.3 (Current)</b></summary>
+<summary><b>v0.1.4 (Current)</b></summary>
+
+### Added
+- **`get_session` tool**: Retrieve stored conversation sessions
+  - Get specific session by filename
+  - List all sessions (optionally filtered by date)
+  - Support for limiting number of results
+- **TOON format support**: ~40% token reduction for LLM interactions
+  - Automatic format selection (`auto` mode) chooses best format
+  - Manual format selection (`json` or `toon`)
+  - Optimized for uniform data structures (message arrays, session lists)
+- **Markdown parser**: Parse stored session files and extract structured data
+- **Feature-based folder structure**: Reorganized codebase for better scalability
+  - `store-session/` - All store_session related code
+  - `get-session/` - All get_session related code
+  - `shared/` - Shared utilities across features
+
+### Performance
+- **~40% token reduction** when using TOON format for uniform data
+- Automatic detection of data structures suitable for TOON encoding
+- Fallback to JSON for non-uniform or small datasets
+
+### Changed
+- Enhanced `get_session` tool with format options for token optimization
+- Restructured codebase into feature-based folders for better maintainability
+
+</details>
+
+<details>
+<summary><b>v0.1.3</b></summary>
 
 - **Fixed session boundary issue**: `store_session` now only includes messages from the current conversation thread
 - Updated tool description to clarify that only current session data should be passed

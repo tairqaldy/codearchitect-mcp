@@ -1,6 +1,6 @@
-import { existsSync } from 'fs';
+import { existsSync, statSync } from 'fs';
 import { join, dirname, resolve, parse } from 'path';
-import { mkdir, writeFile as fsWriteFile } from 'fs/promises';
+import { mkdir, writeFile as fsWriteFile, readFile, readdir } from 'fs/promises';
 
 /**
  * Gets the workspace directory from environment variables or falls back to process.cwd()
@@ -198,4 +198,64 @@ function slugify(text: string): string {
     .replace(/-+/g, '-') // Multiple hyphens to one
     .replace(/^-|-$/g, '') // Remove leading/trailing hyphens
     .substring(0, 50); // Max 50 chars
+}
+
+/**
+ * Reads content from a file.
+ */
+export async function readFileContent(filePath: string, encoding: BufferEncoding = 'utf-8'): Promise<string> {
+  try {
+    return await readFile(filePath, encoding);
+  } catch (error) {
+    throw new Error(
+      `Failed to read file ${filePath}: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
+/**
+ * Lists files in a directory.
+ */
+export async function listFiles(dirPath: string): Promise<string[]> {
+  try {
+    const entries = await readdir(dirPath, { withFileTypes: true });
+    return entries
+      .filter((entry) => entry.isFile())
+      .map((entry) => entry.name);
+  } catch (error) {
+    throw new Error(
+      `Failed to list directory ${dirPath}: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
+/**
+ * Lists subdirectories in a directory.
+ */
+export async function listDirectories(dirPath: string): Promise<string[]> {
+  try {
+    const entries = await readdir(dirPath, { withFileTypes: true });
+    return entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name);
+  } catch (error) {
+    throw new Error(
+      `Failed to list directories ${dirPath}: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
+/**
+ * Gets file stats (size, etc.)
+ */
+export function getFileStats(filePath: string): { size: number; exists: boolean } {
+  try {
+    if (!existsSync(filePath)) {
+      return { size: 0, exists: false };
+    }
+    const stats = statSync(filePath);
+    return { size: stats.size, exists: true };
+  } catch {
+    return { size: 0, exists: false };
+  }
 }

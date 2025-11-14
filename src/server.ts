@@ -8,13 +8,14 @@ import {
   type ListToolsResult,
   type CallToolResult,
 } from '@modelcontextprotocol/sdk/types.js';
-import { SessionManager } from './session/SessionManager.js';
-import { handleError } from './session/errors.js';
+import { SessionStoreManager } from './store-session/index.js';
+import { SessionRetrievalManager } from './get-session/index.js';
+import { handleError } from './shared/errors.js';
 
 const server = new Server(
   {
     name: 'codearchitect-mcp',
-    version: '0.1.3',
+    version: '0.1.4',
   },
   {
     capabilities: {
@@ -23,7 +24,8 @@ const server = new Server(
   }
 );
 
-const sessionManager = new SessionManager();
+const sessionStoreManager = new SessionStoreManager();
+const sessionRetrievalManager = new SessionRetrievalManager();
 
 // Register tools/list
 server.setRequestHandler(ListToolsRequestSchema, async (): Promise<ListToolsResult> => {
@@ -57,38 +59,96 @@ server.setRequestHandler(ListToolsRequestSchema, async (): Promise<ListToolsResu
           required: ['conversation'],
         },
       },
+      {
+        name: 'get_session',
+        description: 'Retrieve stored AI conversation session(s). Supports TOON format for ~40% token reduction when sending to LLMs.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            filename: {
+              type: 'string',
+              description: 'Optional: Specific session filename to retrieve. If not provided, lists all sessions.',
+            },
+            date: {
+              type: 'string',
+              description: 'Optional: Filter sessions by date (YYYY-MM-DD format). Only used when listing sessions.',
+            },
+            format: {
+              type: 'string',
+              enum: ['json', 'toon', 'auto'],
+              description: 'Output format. "json" for JSON, "toon" for TOON format (~40% token reduction), "auto" to automatically choose best format. Default: "auto"',
+              default: 'auto',
+            },
+            limit: {
+              type: 'number',
+              description: 'Optional: Limit number of sessions returned when listing. Default: no limit',
+            },
+            sessionsDir: {
+              type: 'string',
+              description: 'Optional: Custom directory for storing sessions. If not provided, uses CODEARCHITECT_SESSIONS_DIR env var or defaults to .codearchitect/sessions/ in project root.',
+            },
+          },
+        },
+      },
     ],
   };
 });
 
 // Register tools/call
 server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToolResult> => {
-  if (request.params.name !== 'store_session') {
-    return handleError(new Error('Unknown tool'));
-  }
+  const toolName = request.params.name;
+  const args = (request.params.arguments as Record<string, unknown>) || {};
 
   try {
-    const args = (request.params.arguments as Record<string, unknown>) || {};
-    const conversation = args.conversation;
-    if (!conversation) {
-      return handleError(new Error('Conversation parameter is required'));
-    }
-    
-    const result = await sessionManager.storeSession({
-      conversation: conversation as string | Array<{ role: string; content: unknown }>,
-      topic: args.topic as string | undefined,
-      format: (args.format as 'plain' | 'messages') || 'plain',
-      sessionsDir: args.sessionsDir as string | undefined,
-    });
+    if (toolName === 'store_session') {
+      const conversation = args.conversation;
+      if (!conversation) {
+        return handleError(new Error('Conversation parameter is required'));
+      }
+      
+      const result = await sessionStoreManager.storeSession({
+        conversation: conversation as string | Array<{ role: string; content: unknown }>,
+        topic: args.topic as string | undefined,
+        format: (args.format as 'plain' | 'messages') || 'plain',
+        sessionsDir: args.sessionsDir as string | undefined,
+      });
 
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(result),
-        },
-      ],
-    };
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(result),
+          },
+        ],
+      };
+    }
+
+    if (toolName === 'get_session') {
+      const result = args.filename
+        ? await sessionRetrievalManager.getSession({
+            filename: args.filename as string,
+            date: args.date as string | undefined,
+            format: (args.format as 'json' | 'toon' | 'auto') || 'auto',
+            sessionsDir: args.sessionsDir as string | undefined,
+          })
+        : await sessionRetrievalManager.listSessions({
+            date: args.date as string | undefined,
+            format: (args.format as 'json' | 'toon' | 'auto') || 'auto',
+            limit: args.limit as number | undefined,
+            sessionsDir: args.sessionsDir as string | undefined,
+          });
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(result),
+          },
+        ],
+      };
+    }
+
+    return handleError(new Error(`Unknown tool: ${toolName}`));
   } catch (error) {
     return handleError(error);
   }

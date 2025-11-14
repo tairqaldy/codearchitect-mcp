@@ -7,7 +7,8 @@
 
 import { encode } from '@toon-format/toon';
 import { encoding_for_model } from 'tiktoken';
-import type { Message, StoreSessionResult } from '../src/session/types.js';
+import type { Message } from '../src/shared/types.js';
+import type { StoreSessionResult } from '../src/store-session/types.js';
 
 // Initialize tokenizer (using cl100k_base which is GPT-4 style)
 const tokenizer = encoding_for_model('gpt-4');

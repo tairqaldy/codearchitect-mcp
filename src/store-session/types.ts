@@ -1,13 +1,14 @@
+/**
+ * Types for store_session feature
+ */
+
+import type { Message } from '../shared/types.js';
+
 export interface StoreSessionParams {
   conversation: string | Message[];
   topic?: string;
   format?: 'plain' | 'messages';
   sessionsDir?: string; // Optional: Custom directory for storing sessions
-}
-
-export interface Message {
-  role: string;
-  content: string | unknown;
 }
 
 export interface StoreSessionResult {
@@ -21,3 +22,4 @@ export interface StoreSessionResult {
   details?: string;
   warning?: string;
 }
+

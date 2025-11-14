@@ -1,4 +1,4 @@
-import { detectProjectRoot, generateFilename, validatePath } from '../../src/utils/filesystem.js';
+import { detectProjectRoot, generateFilename, validatePath } from '../../src/shared/filesystem.js';
 import { mkdtemp, writeFile, mkdir, rm } from 'fs/promises';
 import { join, dirname } from 'path';
 import { tmpdir } from 'os';

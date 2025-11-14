@@ -1,13 +1,14 @@
-import { StoreSessionParams } from '../session/types.js';
+/**
+ * Validates input parameters for store_session.
+ */
+
+import type { StoreSessionParams } from './types.js';
 
 export interface ValidationResult {
   valid: boolean;
   error?: string;
 }
 
-/**
- * Validates input parameters for store_session.
- */
 export function validateInput(params: StoreSessionParams): ValidationResult {
   // Check conversation exists (null or undefined)
   if (params.conversation === null || params.conversation === undefined) {
@@ -25,7 +26,7 @@ export function validateInput(params: StoreSessionParams): ValidationResult {
     };
   }
 
-  // Empty strings and arrays are allowed - they'll be handled with a warning in SessionManager
+  // Empty strings and arrays are allowed - they'll be handled with a warning in SessionStoreManager
 
   // Check format if provided
   if (params.format && !['plain', 'messages'].includes(params.format)) {
@@ -55,3 +56,4 @@ export function validateInput(params: StoreSessionParams): ValidationResult {
 
   return { valid: true };
 }
+

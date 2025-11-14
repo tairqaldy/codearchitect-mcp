@@ -1,5 +1,5 @@
-import { validateInput } from '../../src/utils/validation.js';
-import { StoreSessionParams } from '../../src/session/types.js';
+import { validateInput } from '../../src/store-session/input-validator.js';
+import type { StoreSessionParams } from '../../src/store-session/types.js';
 
 describe('InputValidation', () => {
   it('should accept valid conversation string', () => {

@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2025-01-15
+
+### Added
+- **`get_session` tool**: New tool to retrieve stored conversation sessions
+  - Get specific session by filename
+  - List all sessions (optionally filtered by date)
+  - Support for limiting number of results
+- **TOON format support**: ~40% token reduction for LLM interactions
+  - Automatic format selection (`auto` mode) chooses best format
+  - Manual format selection (`json` or `toon`)
+  - Optimized for uniform data structures (message arrays, session lists)
+  - New `toon.ts` utility module for TOON encoding/decoding
+- **Markdown parser**: New utility to parse stored session files
+  - Extracts topic, date, and conversation content
+  - Parses structured message format
+- **Session listing functionality**: List sessions with metadata
+  - Filter by date
+  - Sort by date (newest first)
+  - Include file size information
+
+### Changed
+- Enhanced `get_session` tool with format options for token optimization
+- Updated version to 0.1.4
+
+### Performance
+- **~40% token reduction** when using TOON format for uniform data
+- Automatic detection of data structures suitable for TOON encoding
+- Fallback to JSON for non-uniform or small datasets
+
+### Documentation
+- Added TOON benchmark script (`scripts/benchmark-toon.ts`)
+- Added TOON benchmark documentation (`scripts/TOON_BENCHMARK_README.md`)
+- Added git workflow cheatsheet (`dev-docs/GIT_WORKFLOW_CHEATSHEET.md`)
+
+[0.1.4]: https://github.com/tairqaldy/codearchitect-mcp/releases/tag/v0.1.4
+
 ## [0.1.3] - 2025-11-12
 
 ### Fixed

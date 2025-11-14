@@ -1,12 +1,23 @@
-import { StoreSessionParams, StoreSessionResult } from './types.js';
-import { detectProjectRoot, ensureDirectory, generateFilename, writeFile, validatePath, getSessionsDirectory } from '../utils/filesystem.js';
-import { extractTopic } from '../utils/topic.js';
-import { formatMarkdown } from '../utils/markdown.js';
-import { validateInput } from '../utils/validation.js';
-import { SessionError } from './errors.js';
+/**
+ * Manages storing AI conversation sessions as markdown files
+ */
+
+import type { StoreSessionParams, StoreSessionResult } from './types.js';
+import {
+  detectProjectRoot,
+  ensureDirectory,
+  generateFilename,
+  writeFile,
+  validatePath,
+  getSessionsDirectory,
+} from '../shared/filesystem.js';
+import { extractTopic } from './topic-extractor.js';
+import { formatMarkdown } from './markdown-formatter.js';
+import { validateInput } from './input-validator.js';
+import { SessionError } from '../shared/errors.js';
 import { join } from 'path';
 
-export class SessionManager {
+export class SessionStoreManager {
   async storeSession(params: StoreSessionParams): Promise<StoreSessionResult> {
     try {
       // 1. Validate input
@@ -145,3 +156,4 @@ export class SessionManager {
     }
   }
 }
+
