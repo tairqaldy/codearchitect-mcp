@@ -7,13 +7,22 @@ A Model Context Protocol (MCP) server designed to assist with system design, arc
 [![npm version](https://img.shields.io/npm/v/codearchitect-mcp.svg)](https://www.npmjs.com/package/codearchitect-mcp)
 [![npm downloads](https://img.shields.io/npm/dm/codearchitect-mcp.svg)](https://www.npmjs.com/package/codearchitect-mcp)
 
+## 🎯 Book a Free Onboarding
+
+**[📞 Book a Free Onboarding Session](https://t.me/tairqaldy)** - I will onboard you on how to maximize your efficiency with MCP-powered workflows. **FOR FREE.**
+
+## 🚀 Get Started in 5 Minutes
+
+**[📖 Quick Onboarding Guide](./docs/ONBOARDING.md)** - Become a smarter developer with MCP-powered workflows, token optimization, and better project structure.
+
 ## 🔗 Important Links
 
+- **📚 Docs**: [codearchitect.mintlify.app](https://codearchitect.mintlify.app/)
+- **🌐 Landing Page**: [codearchitect-mcp.vercel.app](https://codearchitect-mcp.vercel.app/)
 - **📦 npm Package**: [codearchitect-mcp](https://www.npmjs.com/package/codearchitect-mcp)
 - **👤 npm Profile**: [@tairkaldybayev](https://www.npmjs.com/~tairkaldybayev)
 - **💻 GitHub**: [tairqaldy/codearchitect-mcp](https://github.com/tairqaldy/codearchitect-mcp)
-- **👨‍💻 Author**: [Tair Kaldybayev](https://tairkaldybayev.link/) - Fullstack Software Engineer
-- **📧 Contact**: Reach out via [GitHub](https://github.com/tairqaldy) or [Telegram](https://t.me/tairqaldy)
+- **👨‍💻 Author**: [Tair Kaldybayev](https://t.me/tairqaldy) - Fullstack Software Engineer
 
 ## ❓ Why Use CodeArchitect MCP?
 
