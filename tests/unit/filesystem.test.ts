@@ -1,4 +1,4 @@
-import { detectProjectRoot, generateFilename, validatePath } from '../../src/shared/filesystem.js';
+import { detectProjectRoot, generateFilename, generateTopicFolderName, validatePath } from '../../src/shared/filesystem.js';
 import { mkdtemp, writeFile, mkdir, rm } from 'fs/promises';
 import { join, dirname } from 'path';
 import { tmpdir } from 'os';
@@ -67,8 +67,53 @@ describe('FileSystemUtils', () => {
     });
   });
 
-  describe('generateFilename', () => {
-    it('should generate valid filename', async () => {
+  describe('generateTopicFolderName', () => {
+    it('should generate valid folder name', async () => {
+      const date = new Date();
+      const topic = 'test-topic';
+      const sessionsDir = join(tempDir, 'sessions');
+
+      const folderName = await generateTopicFolderName(date, topic, sessionsDir);
+
+      expect(folderName).toBe('test-topic');
+    });
+
+    it('should handle folder collisions', async () => {
+      const date = new Date();
+      const topic = 'collision-test';
+      const sessionsDir = join(tempDir, 'sessions');
+      // Use local date to match generateTopicFolderName behavior
+      const dateFolder = date.toLocaleDateString('en-CA');
+      const fullSessionsDir = join(sessionsDir, dateFolder);
+      await mkdir(fullSessionsDir, { recursive: true });
+
+      // Create first folder with summary.md and full.md
+      const folderName1 = await generateTopicFolderName(date, topic, sessionsDir);
+      const folderPath1 = join(fullSessionsDir, folderName1);
+      await mkdir(folderPath1, { recursive: true });
+      await writeFile(join(folderPath1, 'summary.md'), 'test');
+      await writeFile(join(folderPath1, 'full.md'), 'test');
+
+      // Generate second folder name (should get -1 suffix)
+      const folderName2 = await generateTopicFolderName(date, topic, sessionsDir);
+      expect(folderName2).toBe('collision-test-1');
+      expect(folderName2).not.toBe(folderName1);
+    });
+
+    it('should remove redundant suffixes', async () => {
+      const date = new Date();
+      const topic = 'test-session-summary';
+      const sessionsDir = join(tempDir, 'sessions');
+
+      const folderName = await generateTopicFolderName(date, topic, sessionsDir);
+
+      // Should remove "-summary" suffix
+      expect(folderName).toBe('test-session');
+    });
+  });
+
+  describe('generateFilename (legacy)', () => {
+    it('should generate valid filename for backward compatibility', async () => {
       const date = new Date();
       const topic = 'test-topic';
       const sessionsDir = join(tempDir, 'sessions');
@@ -76,24 +121,6 @@ describe('FileSystemUtils', () => {
       const filename = await generateFilename(date, topic, sessionsDir);
 
       expect(filename).toMatch(/^session-\d{8}-\d{6}-test-topic\.md$/);
-    });
-
-    it('should handle collisions', async () => {
-      const date = new Date();
-      const topic = 'collision-test';
-      const sessionsDir = join(tempDir, 'sessions');
-      const dateFolder = date.toISOString().split('T')[0];
-      const fullSessionsDir = join(sessionsDir, dateFolder);
-      await mkdir(fullSessionsDir, { recursive: true });
-
-      // Create first file
-      const filename1 = await generateFilename(date, topic, sessionsDir);
-      await writeFile(join(fullSessionsDir, filename1), 'test');
-
-      // Generate second filename (should get -1 suffix)
-      const filename2 = await generateFilename(date, topic, sessionsDir);
-      expect(filename2).toContain('-1.md');
-      expect(filename2).not.toBe(filename1);
     });
   });
 

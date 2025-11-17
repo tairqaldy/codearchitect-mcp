@@ -45,15 +45,25 @@ describe('store_session integration', () => {
     const result = await sessionStoreManager.storeSession(params);
 
     expect(result.success).toBe(true);
-    expect(result.file).toBeDefined();
-    if (result.file) {
-      expect(existsSync(result.file)).toBe(true);
+    expect(result.summaryFile).toBeDefined();
+    expect(result.fullFile).toBeDefined();
+    expect(result.filename).toBeDefined();
+    
+    if (result.summaryFile && result.fullFile) {
+      expect(existsSync(result.summaryFile)).toBe(true);
+      expect(existsSync(result.fullFile)).toBe(true);
 
-      // Verify content
-      const content = readFileSync(result.file, 'utf-8');
-      expect(content).toContain('# test');
-      expect(content).toContain('User: test');
-      expect(content).toContain('AI: response');
+      // Verify summary.md content (structured summary format)
+      const summaryContent = readFileSync(result.summaryFile, 'utf-8');
+      expect(summaryContent).toContain('# test');
+      expect(summaryContent).toContain('**Date:**');
+      expect(summaryContent).toContain('**Type:** AI Conversation Session Summary');
+
+      // Verify full.md content (should have JSON section)
+      const fullContent = readFileSync(result.fullFile, 'utf-8');
+      expect(fullContent).toContain('# test');
+      expect(fullContent).toContain('## Full Conversation (JSON)');
+      expect(fullContent).toContain('## Human-Readable Format');
     }
   });
 
@@ -66,16 +76,22 @@ describe('store_session integration', () => {
     const result = await sessionStoreManager.storeSession(params);
 
     expect(result.success).toBe(true);
-    expect(result.file).toBeDefined();
-    if (result.file) {
-      // The file should be created somewhere - check that the directory exists
-      // It might be in tempDir or detected project root
-      const fileDir = join(result.file, '..', '..'); // Go up from file to sessions dir
-      const sessionsDir = join(fileDir, '..'); // Go up to .codearchitect
-      expect(existsSync(sessionsDir)).toBe(true);
+    expect(result.summaryFile).toBeDefined();
+    expect(result.fullFile).toBeDefined();
+    
+    if (result.summaryFile && result.fullFile) {
+      // Check that topic folder exists
+      const topicFolder = join(result.summaryFile, '..');
+      expect(existsSync(topicFolder)).toBe(true);
+      
+      // Check that summary.md and full.md exist in topic folder
+      expect(existsSync(join(topicFolder, 'summary.md'))).toBe(true);
+      expect(existsSync(join(topicFolder, 'full.md'))).toBe(true);
 
-      const dateFolder = new Date().toISOString().split('T')[0];
-      const dateDir = join(sessionsDir, 'sessions', dateFolder);
+      // Check that date folder exists (use local date)
+      const dateFolder = new Date().toLocaleDateString('en-CA');
+      const dateDir = join(topicFolder, '..');
+      expect(dateDir).toContain(dateFolder);
       expect(existsSync(dateDir)).toBe(true);
     }
   });
@@ -121,7 +137,8 @@ describe('store_session integration', () => {
 
     expect(result1.success).toBe(true);
     expect(result2.success).toBe(true);
-    expect(result1.file).not.toBe(result2.file);
+    // Different topics should create different folders
+    expect(result1.filename).not.toBe(result2.filename);
   });
 });
 

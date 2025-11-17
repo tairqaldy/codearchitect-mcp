@@ -6,13 +6,13 @@ import type { StoreSessionParams, StoreSessionResult } from './types.js';
 import {
   detectProjectRoot,
   ensureDirectory,
-  generateFilename,
+  generateTopicFolderName,
   writeFile,
   validatePath,
   getSessionsDirectory,
 } from '../shared/filesystem.js';
 import { extractTopic } from './topic-extractor.js';
-import { formatMarkdown } from './markdown-formatter.js';
+import { formatSummaryMarkdown, formatFullContextMarkdown } from './markdown-formatter.js';
 import { validateInput } from './input-validator.js';
 import { SessionError } from '../shared/errors.js';
 import { join } from 'path';
@@ -27,29 +27,23 @@ export class SessionStoreManager {
       }
 
       // Handle empty conversation (edge case)
-      let conversationText: string;
       let warning: string | undefined;
 
       if (typeof params.conversation === 'string') {
-        conversationText = params.conversation;
-        if (conversationText.trim().length === 0) {
+        if (params.conversation.trim().length === 0) {
           warning = 'Conversation is empty';
         }
       } else {
-        conversationText = JSON.stringify(params.conversation, null, 2);
         if (params.conversation.length === 0) {
           warning = 'Conversation is empty';
         }
       }
 
-      // Handle very long conversations (edge case)
-      const maxSize = 1024 * 1024; // 1MB
-      if (conversationText.length > maxSize) {
-        conversationText = conversationText.substring(0, maxSize) + '\n\n... (truncated)';
-        warning = 'Conversation truncated to 1MB';
-      }
-
-      // 2. Extract topic
+      // 2. Extract topic (use conversation text for topic extraction)
+      const conversationText =
+        typeof params.conversation === 'string'
+          ? params.conversation
+          : JSON.stringify(params.conversation, null, 2);
       const topic = extractTopic(conversationText, params.topic);
 
       // 3. Detect project root
@@ -79,7 +73,8 @@ export class SessionStoreManager {
       }
 
       const date = new Date();
-      const dateFolder = date.toISOString().split('T')[0];
+      // Use local date instead of UTC to match user's timezone
+      const dateFolder = date.toLocaleDateString('en-CA'); // Returns YYYY-MM-DD format
       const fullSessionsDir = join(sessionsDir, dateFolder);
 
       // 5. Ensure date folder exists
@@ -93,55 +88,81 @@ export class SessionStoreManager {
         );
       }
 
-      // 6. Generate filename
-      let filename: string;
+      // 6. Generate topic folder name
+      let topicFolderName: string;
       try {
-        filename = await generateFilename(date, topic, sessionsDir);
+        topicFolderName = await generateTopicFolderName(date, topic, sessionsDir);
       } catch (error) {
         throw new SessionError(
           'FILENAME_GENERATION_ERROR',
-          'Failed to generate filename',
+          'Failed to generate topic folder name',
           error instanceof Error ? error.message : String(error)
         );
       }
 
-      // 7. Format markdown
-      const markdown = formatMarkdown(
-        params.conversation,
-        topic,
-        params.format || 'plain'
-      );
+      // 7. Create topic folder inside date folder
+      const topicFolderPath = join(fullSessionsDir, topicFolderName);
+      try {
+        await ensureDirectory(topicFolderPath);
+      } catch (error) {
+        throw new SessionError(
+          'DIRECTORY_CREATION_ERROR',
+          'Failed to create topic directory',
+          error instanceof Error ? error.message : String(error)
+        );
+      }
 
-      // 8. Write file
-      const filePath = join(fullSessionsDir, filename);
+      // 8. Generate filenames for both files (simple names inside topic folder)
+      const summaryFilename = 'summary.md';
+      const fullFilename = 'full.md';
+      const summaryFilePath = join(topicFolderPath, summaryFilename);
+      const fullFilePath = join(topicFolderPath, fullFilename);
 
-      // Security check: validate path
-      // If custom directory is outside project, validate against sessionsDir instead
+      // Security check: validate paths
       const validationBase = params.sessionsDir || process.env.CODEARCHITECT_SESSIONS_DIR 
         ? sessionsDir 
         : projectRoot;
       
-      if (!validatePath(filePath, validationBase)) {
+      if (!validatePath(summaryFilePath, validationBase) || !validatePath(fullFilePath, validationBase)) {
         throw new SessionError('FILE_WRITE_ERROR', 'Invalid file path detected');
       }
 
+      // 9. Format markdown for both files
+      const summaryMarkdown = formatSummaryMarkdown(
+        params.conversation,
+        topic,
+        params.format || 'plain',
+        fullFilename
+      );
+
+      const fullMarkdown = formatFullContextMarkdown(
+        params.conversation,
+        topic,
+        params.format || 'plain',
+        summaryFilename
+      );
+
+      // 10. Write both files
       try {
-        await writeFile(filePath, markdown, 'utf-8');
+        await writeFile(summaryFilePath, summaryMarkdown, 'utf-8');
+        await writeFile(fullFilePath, fullMarkdown, 'utf-8');
       } catch (error) {
         throw new SessionError(
           'FILE_WRITE_ERROR',
-          'Failed to write session file',
+          'Failed to write session files',
           error instanceof Error ? error.message : String(error)
         );
       }
 
       return {
         success: true,
-        file: filePath,
-        filename,
+        file: summaryFilePath, // Deprecated: kept for backward compatibility
+        summaryFile: summaryFilePath,
+        fullFile: fullFilePath,
+        filename: topicFolderName, // Topic folder name (base filename)
         topic,
         date: date.toISOString(),
-        message: `Session saved to ${filename}`,
+        message: `Session saved in folder ${topicFolderName}: ${summaryFilename} and ${fullFilename}`,
         warning,
       };
     } catch (error) {

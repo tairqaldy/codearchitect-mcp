@@ -15,7 +15,7 @@ import { handleError } from './shared/errors.js';
 const server = new Server(
   {
     name: 'codearchitect-mcp',
-    version: '0.1.4',
+    version: '0.1.5',
   },
   {
     capabilities: {
@@ -27,19 +27,70 @@ const server = new Server(
 const sessionStoreManager = new SessionStoreManager();
 const sessionRetrievalManager = new SessionRetrievalManager();
 
+// Feature information for help tool
+const FEATURES = {
+  store_session: {
+    name: 'store_session',
+    description: 'Save important conversations for future reference',
+    usage: 'use codearchitect store_session [topic]',
+    examples: [
+      'use codearchitect store_session',
+      'use codearchitect store_session "authentication implementation"',
+      'use codearchitect store_session in custom/path',
+    ],
+    when_to_use: [
+      'After important discussions',
+      'When solving complex problems',
+      'When documenting decisions',
+    ],
+    details: 'Saves the conversation as a markdown file organized by date. Mention a topic or location/path if needed. Next: Use get_session to retrieve saved conversations.',
+  },
+  get_session: {
+    name: 'get_session',
+    description: 'Retrieve previous conversations to avoid re-explaining',
+    usage: 'use codearchitect get_session [filename] [date]',
+    examples: [
+      'use codearchitect get_session',
+      'use codearchitect get_session session-20250115-143022-auth.md',
+      'use codearchitect get_session 2025-01-15',
+    ],
+    when_to_use: [
+      'When you need context from a previous conversation',
+      'Before explaining something you already discussed',
+      'When continuing work on a previous topic',
+    ],
+    details: 'Retrieves stored sessions by filename or date. Lists all sessions if no parameters provided. Next: Use store_session to save new conversations.',
+  },
+};
+
 // Register tools/list
 server.setRequestHandler(ListToolsRequestSchema, async (): Promise<ListToolsResult> => {
   return {
     tools: [
       {
+        name: 'codearchitect_help',
+        description: `Get help about CodeArchitect MCP features. Use when user says "use codearchitect" without specifying a feature, or asks "what can codearchitect do?". Returns available features with examples and next steps.`,
+        inputSchema: {
+          type: 'object',
+          properties: {
+            feature: {
+              type: 'string',
+              description: 'Optional: Specific feature name to get help for (store_session, get_session). If not provided, returns help for all features.',
+            },
+          },
+        },
+      },
+      {
         name: 'store_session',
-        description: 'Store AI conversation session as a markdown file in .codearchitect/sessions/',
+        description: `[CodeArchitect] Save important conversations for future reference. Use when user says "use codearchitect store_session", "save this conversation", or wants to keep/remember something. Can include topic or location/path. Saves to .codearchitect/sessions/ organized by date.
+
+IMPORTANT: When calling this tool, the conversation parameter MUST contain the FULL, COMPLETE content of all messages - not summaries or placeholders. Include all actual code, explanations, responses, and details. Do NOT use placeholders like "[I did X]" or "[I explained Y]". Pass the actual full conversation content.`,
         inputSchema: {
           type: 'object',
           properties: {
             conversation: {
               type: 'string',
-              description: 'Current conversation thread text or JSON array of messages. Should only include messages from the current session, not from previous stored sessions. Required.',
+              description: 'FULL conversation thread text or JSON array of messages with COMPLETE content. Must include all actual messages, code, explanations - NOT summaries or placeholders. Should only include messages from the current session, not from previous stored sessions. Required.',
             },
             topic: {
               type: 'string',
@@ -61,7 +112,7 @@ server.setRequestHandler(ListToolsRequestSchema, async (): Promise<ListToolsResu
       },
       {
         name: 'get_session',
-        description: 'Retrieve stored AI conversation session(s). Supports TOON format for ~40% token reduction when sending to LLMs.',
+        description: `[CodeArchitect] Retrieve previous conversations to avoid re-explaining. Use when user says "use codearchitect get_session", "get that previous conversation", or mentions something they discussed before. Can specify filename or date to filter. Lists all sessions if no parameters provided.`,
         inputSchema: {
           type: 'object',
           properties: {
@@ -100,6 +151,54 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
   const args = (request.params.arguments as Record<string, unknown>) || {};
 
   try {
+    // Help tool
+    if (toolName === 'codearchitect_help') {
+      const featureName = args.feature as string | undefined;
+      
+      if (featureName && FEATURES[featureName as keyof typeof FEATURES]) {
+        const feature = FEATURES[featureName as keyof typeof FEATURES];
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                success: true,
+                feature: {
+                  name: feature.name,
+                  description: feature.description,
+                  usage: feature.usage,
+                  examples: feature.examples,
+                  when_to_use: feature.when_to_use,
+                  details: feature.details,
+                },
+              }, null, 2),
+            },
+          ],
+        };
+      }
+      
+      // Return all features
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              message: 'CodeArchitect MCP - Available Features',
+              usage_pattern: 'Say "use codearchitect [feature_name]" or just "use codearchitect" to see options',
+              features: Object.values(FEATURES).map(f => ({
+                name: f.name,
+                description: f.description,
+                usage: f.usage,
+                examples: f.examples.slice(0, 2), // Show first 2 examples
+                next_step: f.details.split('Next: ')[1] || undefined,
+              })),
+            }, null, 2),
+          },
+        ],
+      };
+    }
+
     if (toolName === 'store_session') {
       const conversation = args.conversation;
       if (!conversation) {

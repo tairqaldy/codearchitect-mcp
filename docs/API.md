@@ -1,8 +1,92 @@
 # API Documentation
 
+## Tool: codearchitect_help
+
+Get help about CodeArchitect MCP features. Lists available features with descriptions, usage examples, and next steps.
+
+### Request Schema
+
+```typescript
+{
+  name: "codearchitect_help",
+  arguments: {
+    feature?: string  // Optional: Specific feature name (store_session, get_session)
+  }
+}
+```
+
+### Response Schema
+
+#### Success Response (All Features)
+
+```typescript
+{
+  success: true,
+  message: "CodeArchitect MCP - Available Features",
+  usage_pattern: "Say \"use codearchitect [feature_name]\" or just \"use codearchitect\" to see options",
+  features: [
+    {
+      name: string,
+      description: string,
+      usage: string,
+      examples: string[],
+      next_step?: string
+    }
+  ]
+}
+```
+
+#### Success Response (Specific Feature)
+
+```typescript
+{
+  success: true,
+  feature: {
+    name: string,
+    description: string,
+    usage: string,
+    examples: string[],
+    when_to_use: string[],
+    details: string
+  }
+}
+```
+
+### Example
+
+**Request:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "codearchitect_help"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"success\":true,\"message\":\"CodeArchitect MCP - Available Features\",\"usage_pattern\":\"Say \\\"use codearchitect [feature_name]\\\" or just \\\"use codearchitect\\\" to see options\",\"features\":[{\"name\":\"store_session\",\"description\":\"Save important conversations for future reference\",\"usage\":\"use codearchitect store_session [topic]\",\"examples\":[\"use codearchitect store_session\",\"use codearchitect store_session \\\"authentication implementation\\\"\"]}]}"
+      }
+    ]
+  }
+}
+```
+
+---
+
 ## Tool: store_session
 
-Stores an AI conversation session as a markdown file in `.codearchitect/sessions/`.
+Stores an AI conversation session in a topic-named folder with `summary.md` and `full.md` files in `.codearchitect/sessions/`.
 
 ### Request Schema
 
@@ -10,13 +94,15 @@ Stores an AI conversation session as a markdown file in `.codearchitect/sessions
 {
   name: "store_session",
   arguments: {
-    conversation: string | Message[],  // Required
-    topic?: string,                      // Optional
+    conversation: string | Message[],  // Required: FULL conversation with COMPLETE content (not summaries)
+    topic?: string,                      // Optional: Auto-extracted if not provided
     format?: "plain" | "messages",       // Optional, default: "plain"
     sessionsDir?: string                // Optional: Custom directory for sessions
   }
 }
 ```
+
+**Important**: The `conversation` parameter must contain the FULL, COMPLETE content of all messages - not summaries or placeholders. Include all actual code, explanations, responses, and details. Do NOT use placeholders like "[I did X]" or "[I explained Y]".
 
 ### Message Format
 
@@ -36,14 +122,22 @@ interface Message {
 ```typescript
 {
   success: true,
-  file: string,        // Full path to saved file
-  filename: string,    // Just the filename
-  topic: string,       // Final topic used
-  date: string,        // ISO date string
-  message: string,     // Human-readable success message
-  warning?: string     // Optional warning (e.g., "Conversation is empty")
+  file: string,           // Deprecated: Full path to summary file (kept for backward compatibility)
+  summaryFile: string,   // Full path to summary.md file
+  fullFile: string,       // Full path to full.md file
+  filename: string,       // Topic folder name (base filename)
+  topic: string,          // Final topic used
+  date: string,           // ISO date string
+  message: string,        // Human-readable success message
+  warning?: string        // Optional warning (e.g., "Conversation is empty")
 }
 ```
+
+**Storage Structure**:
+- Sessions are stored in topic-named folders: `.codearchitect/sessions/YYYY-MM-DD/topic-folder/`
+- Each folder contains:
+  - `summary.md`: Short summary + detailed request/response pairs with key points
+  - `full.md`: Complete conversation as JSON (TOON-optimized) + human-readable format
 
 #### Error Response
 
@@ -98,7 +192,7 @@ interface Message {
     "content": [
       {
         "type": "text",
-        "text": "{\"success\":true,\"file\":\"/path/to/project/.codearchitect/sessions/2025-01-15/session-20250115-143022-authentication-implementation.md\",\"filename\":\"session-20250115-143022-authentication-implementation.md\",\"topic\":\"authentication-implementation\",\"date\":\"2025-01-15T14:30:22.123Z\",\"message\":\"Session saved to session-20250115-143022-authentication-implementation.md\"}"
+        "text": "{\"success\":true,\"summaryFile\":\"/path/to/project/.codearchitect/sessions/2025-01-15/authentication-implementation/summary.md\",\"fullFile\":\"/path/to/project/.codearchitect/sessions/2025-01-15/authentication-implementation/full.md\",\"filename\":\"authentication-implementation\",\"topic\":\"authentication-implementation\",\"date\":\"2025-01-15T14:30:22.123Z\",\"message\":\"Session saved in folder authentication-implementation: summary.md and full.md\"}"
       }
     ]
   }
@@ -141,7 +235,7 @@ interface Message {
     "content": [
       {
         "type": "text",
-        "text": "{\"success\":true,\"file\":\"/path/to/project/.codearchitect/sessions/2025-01-15/session-20250115-150000-add-database-connection.md\",\"filename\":\"session-20250115-150000-add-database-connection.md\",\"topic\":\"add-database-connection\",\"date\":\"2025-01-15T15:00:00.000Z\",\"message\":\"Session saved to session-20250115-150000-add-database-connection.md\"}"
+        "text": "{\"success\":true,\"summaryFile\":\"/path/to/project/.codearchitect/sessions/2025-01-15/add-database-connection/summary.md\",\"fullFile\":\"/path/to/project/.codearchitect/sessions/2025-01-15/add-database-connection/full.md\",\"filename\":\"add-database-connection\",\"topic\":\"add-database-connection\",\"date\":\"2025-01-15T15:00:00.000Z\",\"message\":\"Session saved in folder add-database-connection: summary.md and full.md\"}"
       }
     ]
   }
@@ -176,7 +270,7 @@ interface Message {
     "content": [
       {
         "type": "text",
-        "text": "{\"success\":true,\"file\":\"/custom/path/to/sessions/2025-01-15/session-20250115-160000-code-review.md\",\"filename\":\"session-20250115-160000-code-review.md\",\"topic\":\"code-review\",\"date\":\"2025-01-15T16:00:00.000Z\",\"message\":\"Session saved to session-20250115-160000-code-review.md\"}"
+        "text": "{\"success\":true,\"summaryFile\":\"/custom/path/to/sessions/2025-01-15/code-review/summary.md\",\"fullFile\":\"/custom/path/to/sessions/2025-01-15/code-review/full.md\",\"filename\":\"code-review\",\"topic\":\"code-review\",\"date\":\"2025-01-15T16:00:00.000Z\",\"message\":\"Session saved in folder code-review: summary.md and full.md\"}"
       }
     ]
   }
@@ -254,14 +348,16 @@ If project root cannot be detected, current directory is used with a warning:
 }
 ```
 
-#### Filename Collision
+#### Folder Name Collision
 
-If a file with the same name exists, a counter is appended:
+If a folder with the same topic name exists, a counter is appended:
 
-- `session-20250115-143022-topic.md`
-- `session-20250115-143022-topic-1.md`
-- `session-20250115-143022-topic-2.md`
+- `topic-folder/`
+- `topic-folder-1/`
+- `topic-folder-2/`
 - etc.
+
+**Folder Name Cleanup**: Redundant suffixes like "-summary", "-session", "-conversation", "-chat" are automatically removed from folder names for better readability.
 
 ### Sessions Directory Configuration
 
@@ -292,4 +388,175 @@ See the [README](../README.md) for detailed configuration examples.
 - Paths must be within the detected project root
 - Special characters in topics are sanitized
 - File operations are wrapped in try-catch for error handling
+
+---
+
+## Tool: get_session
+
+Retrieves stored AI conversation session(s). Supports both old format (single files) and new format (folder-based with summary.md and full.md). Automatically prefers full context when available.
+
+### Request Schema
+
+```typescript
+{
+  name: "get_session",
+  arguments: {
+    filename?: string,      // Optional: Topic folder name or specific filename
+    date?: string,          // Optional: Filter by date (YYYY-MM-DD format)
+    format?: "json" | "toon" | "auto",  // Optional, default: "auto"
+    limit?: number,         // Optional: Limit number of sessions when listing
+    sessionsDir?: string    // Optional: Custom directory for sessions
+  }
+}
+```
+
+### Response Schema
+
+#### Success Response (Get Specific Session)
+
+```typescript
+{
+  success: true,
+  session: {
+    filename: string,       // Topic folder name or filename
+    topic: string,          // Session topic
+    date: string,          // ISO date string
+    file: string,           // Full path to retrieved file (prefers full.md)
+    content: string,       // Session content (TOON or JSON format)
+    messages?: Message[],  // Parsed messages array (if available)
+    format: "json" | "toon"  // Format used
+  },
+  message: string
+}
+```
+
+#### Success Response (List Sessions)
+
+```typescript
+{
+  success: true,
+  sessions: [
+    {
+      filename: string,     // Topic folder name (base filename)
+      topic: string,        // Session topic
+      date: string,         // Date folder (YYYY-MM-DD)
+      file: string,        // Full path to file (prefers full.md)
+      size: number         // File size in bytes
+    }
+  ],
+  count: number,
+  message: string
+}
+```
+
+### File Detection Logic
+
+When retrieving by base filename (without suffix):
+1. Checks for `topic-folder-name-full.md` (preferred)
+2. Falls back to `topic-folder-name-summary.md`
+3. Falls back to old format `topic-folder-name.md`
+
+When listing sessions:
+- Groups dual-file sessions (summary.md + full.md) by base folder name
+- Shows base filename (without suffix) in listings
+- Prefers full.md for metadata extraction
+
+### Examples
+
+#### Example 1: Get Specific Session
+
+**Request:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "get_session",
+    "arguments": {
+      "filename": "authentication-implementation"
+    }
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"success\":true,\"session\":{\"filename\":\"authentication-implementation\",\"topic\":\"authentication-implementation\",\"date\":\"2025-01-15T14:30:22.123Z\",\"file\":\"/path/to/project/.codearchitect/sessions/2025-01-15/authentication-implementation/full.md\",\"content\":\"messages[5\\t]{role\\tcontent}:...\",\"messages\":[{\"role\":\"user\",\"content\":\"...\"}],\"format\":\"toon\"},\"message\":\"Session retrieved: authentication-implementation\"}"
+      }
+    ]
+  }
+}
+```
+
+#### Example 2: List All Sessions
+
+**Request:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "tools/call",
+  "params": {
+    "name": "get_session"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"success\":true,\"sessions\":[{\"filename\":\"authentication-implementation\",\"topic\":\"authentication-implementation\",\"date\":\"2025-01-15\",\"file\":\"/path/to/project/.codearchitect/sessions/2025-01-15/authentication-implementation/full.md\",\"size\":2048}],\"count\":1,\"message\":\"Found 1 session(s)\"}"
+      }
+    ]
+  }
+}
+```
+
+#### Example 3: List Sessions by Date
+
+**Request:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "method": "tools/call",
+  "params": {
+    "name": "get_session",
+    "arguments": {
+      "date": "2025-01-15",
+      "limit": 10
+    }
+  }
+}
+```
+
+### Format Options
+
+- **`auto`** (default): Automatically chooses TOON format if beneficial (~40% token reduction), otherwise uses JSON
+- **`toon`**: Forces TOON format (may fallback to JSON if encoding fails)
+- **`json`**: Always returns JSON format
+
+**TOON Format**: Optimized for uniform data structures (message arrays). Automatically reduces token usage by ~40% when retrieving sessions. Falls back to JSON for non-uniform data.
+
+### Backward Compatibility
+
+The tool handles both old and new storage formats:
+- **Old format**: Single `.md` files (e.g., `session-20250115-143022-topic.md`)
+- **New format**: Folder-based with `summary.md` and `full.md` files
+
+When listing, old format files are shown as-is, while new format sessions are grouped by folder name.
 

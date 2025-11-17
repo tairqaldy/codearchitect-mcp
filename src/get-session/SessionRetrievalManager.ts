@@ -43,8 +43,103 @@ export class SessionRetrievalManager {
       const dateFolder = params.date || this.extractDateFromFilename(params.filename);
       const fullSessionsDir = join(sessionsDir, dateFolder);
 
-      // Build file path
-      const filePath = join(fullSessionsDir, params.filename);
+      // Try new folder structure first (topic folders), then fallback to old structure
+      let filePath: string | undefined;
+      let actualFilename: string = params.filename;
+      let found = false;
+
+      // Check if this is a topic folder name (new structure)
+      // Topic folders contain summary.md and full.md files
+      const topicFolders = await listDirectories(fullSessionsDir).catch(() => []);
+      
+      for (const topicFolder of topicFolders) {
+        const topicFolderPath = join(fullSessionsDir, topicFolder);
+        
+        // Check if filename matches topic folder or files inside
+        if (params.filename === topicFolder || 
+            params.filename.startsWith(`${topicFolder}/`) ||
+            params.filename === 'summary.md' || 
+            params.filename === 'full.md') {
+          
+          // Determine which file to read
+          let targetFile = 'full.md'; // Default to full
+          
+          if (params.filename.endsWith('summary.md') || params.filename.includes('summary')) {
+            targetFile = 'summary.md';
+          } else if (params.filename.endsWith('full.md') || params.filename.includes('full')) {
+            targetFile = 'full.md';
+          }
+          
+          const candidatePath = join(topicFolderPath, targetFile);
+          if (getFileStats(candidatePath).exists) {
+            filePath = candidatePath;
+            actualFilename = topicFolder; // Use folder name as identifier
+            found = true;
+            break;
+          }
+          
+          // Try the other file if preferred doesn't exist
+          const altFile = targetFile === 'full.md' ? 'summary.md' : 'full.md';
+          const altPath = join(topicFolderPath, altFile);
+          if (getFileStats(altPath).exists) {
+            filePath = altPath;
+            actualFilename = topicFolder; // Use folder name as identifier
+            found = true;
+            break;
+          }
+        }
+      }
+
+      // Fallback to old structure (files directly in date folder)
+      if (!found) {
+        if (params.filename.endsWith('-summary.md') || params.filename.endsWith('-full.md')) {
+          // User specified specific file type
+          const candidatePath = join(fullSessionsDir, params.filename);
+          if (getFileStats(candidatePath).exists) {
+            filePath = candidatePath;
+            found = true;
+          }
+        } else if (params.filename.endsWith('.md')) {
+          // Old format file (no suffix)
+          const candidatePath = join(fullSessionsDir, params.filename);
+          if (getFileStats(candidatePath).exists) {
+            filePath = candidatePath;
+            found = true;
+          }
+        } else {
+          // Base filename without extension - prefer full context file
+          const fullFilename = `${params.filename}-full.md`;
+          const fullPath = join(fullSessionsDir, fullFilename);
+          const summaryFilename = `${params.filename}-summary.md`;
+          const summaryPath = join(fullSessionsDir, summaryFilename);
+          
+          // Check which file exists
+          if (getFileStats(fullPath).exists) {
+            filePath = fullPath;
+            actualFilename = fullFilename;
+            found = true;
+          } else if (getFileStats(summaryPath).exists) {
+            filePath = summaryPath;
+            actualFilename = summaryFilename;
+            found = true;
+          } else {
+            // Fallback to old format
+            const oldFormatPath = join(fullSessionsDir, `${params.filename}.md`);
+            if (getFileStats(oldFormatPath).exists) {
+              filePath = oldFormatPath;
+              actualFilename = `${params.filename}.md`;
+              found = true;
+            }
+          }
+        }
+      }
+
+      if (!found || !filePath) {
+        return {
+          success: false,
+          error: `Session file not found: ${params.filename}`,
+        };
+      }
 
       // Security check
       if (!validatePath(filePath, sessionsDir)) {
@@ -56,7 +151,7 @@ export class SessionRetrievalManager {
       if (!stats.exists) {
         return {
           success: false,
-          error: `Session file not found: ${params.filename}`,
+          error: `Session file not found: ${actualFilename}`,
         };
       }
 
@@ -96,7 +191,7 @@ export class SessionRetrievalManager {
       return {
         success: true,
         session: {
-          filename: params.filename,
+          filename: actualFilename,
           topic: parsed.topic,
           date: parsed.date,
           file: filePath,
@@ -104,7 +199,7 @@ export class SessionRetrievalManager {
           messages,
           format: responseFormat,
         },
-        message: `Session retrieved: ${params.filename}`,
+        message: `Session retrieved: ${actualFilename}`,
       };
     } catch (error) {
       if (error instanceof SessionError) {
@@ -142,30 +237,95 @@ export class SessionRetrievalManager {
         // List sessions for specific date
         const dateDir = join(sessionsDir, params.date);
         if (getFileStats(dateDir).exists) {
-          const files = await listFiles(dateDir);
-          for (const filename of files) {
-            if (filename.endsWith('.md')) {
-              const filePath = join(dateDir, filename);
+          // Check for new structure: topic folders
+          const topicFolders = await listDirectories(dateDir).catch(() => []);
+          const files = await listFiles(dateDir).catch(() => []);
+          
+          // Process topic folders (new structure)
+          for (const topicFolder of topicFolders) {
+            const topicFolderPath = join(dateDir, topicFolder);
+            const topicFiles: string[] = await listFiles(topicFolderPath).catch(() => []);
+            
+            // Check if this folder contains summary.md or full.md
+            const hasSummary = topicFiles.includes('summary.md');
+            const hasFull = topicFiles.includes('full.md');
+            
+            if (hasSummary || hasFull) {
+              // This is a topic folder with session files
+              const preferredFile = hasFull ? 'full.md' : 'summary.md';
+              const filePath = join(topicFolderPath, preferredFile);
               const stats = getFileStats(filePath);
               
-              // Try to extract topic from filename or read file
-              let topic = this.extractTopicFromFilename(filename);
+              let topic = topicFolder; // Use folder name as topic
               try {
                 const content = await readFileContent(filePath);
                 const parsed = parseSessionMarkdown(content);
-                topic = parsed.topic;
+                topic = parsed.topic || topicFolder;
               } catch {
-                // Use filename-based topic
+                // Use folder name as topic
               }
 
               sessions.push({
-                filename,
+                filename: topicFolder, // Use folder name as identifier
                 topic,
                 date: params.date,
                 file: filePath,
                 size: stats.size,
               });
             }
+          }
+          
+          // Process old structure: files directly in date folder
+          const fileMap = new Map<string, { summary?: string; full?: string }>();
+          
+          for (const filename of files) {
+            if (filename.endsWith('.md')) {
+              if (filename.endsWith('-summary.md')) {
+                const base = filename.replace('-summary.md', '');
+                if (!fileMap.has(base)) {
+                  fileMap.set(base, {});
+                }
+                fileMap.get(base)!.summary = filename;
+              } else if (filename.endsWith('-full.md')) {
+                const base = filename.replace('-full.md', '');
+                if (!fileMap.has(base)) {
+                  fileMap.set(base, {});
+                }
+                fileMap.get(base)!.full = filename;
+              } else {
+                // Old format - use filename as-is
+                fileMap.set(filename, {});
+              }
+            }
+          }
+
+          // Process grouped files (old structure)
+          for (const [baseName, files] of fileMap.entries()) {
+            // Prefer full file for metadata, fallback to summary, then old format
+            const preferredFile = files.full || files.summary || baseName;
+            const filePath = join(dateDir, preferredFile);
+            const stats = getFileStats(filePath);
+            
+            // Try to extract topic from filename or read file
+            let topic = this.extractTopicFromFilename(baseName);
+            try {
+              const content = await readFileContent(filePath);
+              const parsed = parseSessionMarkdown(content);
+              topic = parsed.topic;
+            } catch {
+              // Use filename-based topic
+            }
+
+            // Use base filename for display (without suffix)
+            const displayFilename = files.full || files.summary ? baseName : preferredFile;
+
+            sessions.push({
+              filename: displayFilename,
+              topic,
+              date: params.date,
+              file: filePath,
+              size: stats.size,
+            });
           }
         }
       } else {
@@ -177,30 +337,95 @@ export class SessionRetrievalManager {
 
         for (const dateFolder of dateFolders) {
           const dateDir = join(sessionsDir, dateFolder);
-          const files = await listFiles(dateDir);
           
-          for (const filename of files) {
-            if (filename.endsWith('.md')) {
-              const filePath = join(dateDir, filename);
+          // Check for new structure: topic folders
+          const topicFolders = await listDirectories(dateDir).catch(() => []);
+          const files = await listFiles(dateDir).catch(() => []);
+          
+          // Process topic folders (new structure)
+          for (const topicFolder of topicFolders) {
+            const topicFolderPath = join(dateDir, topicFolder);
+            const topicFiles: string[] = await listFiles(topicFolderPath).catch(() => []);
+            
+            // Check if this folder contains summary.md or full.md
+            const hasSummary = topicFiles.includes('summary.md');
+            const hasFull = topicFiles.includes('full.md');
+            
+            if (hasSummary || hasFull) {
+              // This is a topic folder with session files
+              const preferredFile = hasFull ? 'full.md' : 'summary.md';
+              const filePath = join(topicFolderPath, preferredFile);
               const stats = getFileStats(filePath);
               
-              let topic = this.extractTopicFromFilename(filename);
+              let topic = topicFolder; // Use folder name as topic
               try {
                 const content = await readFileContent(filePath);
                 const parsed = parseSessionMarkdown(content);
-                topic = parsed.topic;
+                topic = parsed.topic || topicFolder;
               } catch {
-                // Use filename-based topic
+                // Use folder name as topic
               }
 
               sessions.push({
-                filename,
+                filename: topicFolder, // Use folder name as identifier
                 topic,
                 date: dateFolder,
                 file: filePath,
                 size: stats.size,
               });
             }
+          }
+          
+          // Process old structure: files directly in date folder
+          const fileMap = new Map<string, { summary?: string; full?: string }>();
+          
+          for (const filename of files) {
+            if (filename.endsWith('.md')) {
+              if (filename.endsWith('-summary.md')) {
+                const base = filename.replace('-summary.md', '');
+                if (!fileMap.has(base)) {
+                  fileMap.set(base, {});
+                }
+                fileMap.get(base)!.summary = filename;
+              } else if (filename.endsWith('-full.md')) {
+                const base = filename.replace('-full.md', '');
+                if (!fileMap.has(base)) {
+                  fileMap.set(base, {});
+                }
+                fileMap.get(base)!.full = filename;
+              } else {
+                // Old format - use filename as-is
+                fileMap.set(filename, {});
+              }
+            }
+          }
+
+          // Process grouped files (old structure)
+          for (const [baseName, files] of fileMap.entries()) {
+            // Prefer full file for metadata, fallback to summary, then old format
+            const preferredFile = files.full || files.summary || baseName;
+            const filePath = join(dateDir, preferredFile);
+            const stats = getFileStats(filePath);
+            
+            let topic = this.extractTopicFromFilename(baseName);
+            try {
+              const content = await readFileContent(filePath);
+              const parsed = parseSessionMarkdown(content);
+              topic = parsed.topic;
+            } catch {
+              // Use filename-based topic
+            }
+
+            // Use base filename for display (without suffix)
+            const displayFilename = files.full || files.summary ? baseName : preferredFile;
+
+            sessions.push({
+              filename: displayFilename,
+              topic,
+              date: dateFolder,
+              file: filePath,
+              size: stats.size,
+            });
           }
         }
       }
@@ -245,8 +470,8 @@ export class SessionRetrievalManager {
       // Convert YYYYMMDD to YYYY-MM-DD
       return `${dateStr.substring(0, 4)}-${dateStr.substring(4, 6)}-${dateStr.substring(6, 8)}`;
     }
-    // Fallback to today's date
-    return new Date().toISOString().split('T')[0];
+    // Fallback to today's date (local timezone)
+    return new Date().toLocaleDateString('en-CA'); // Returns YYYY-MM-DD format
   }
 
   /**

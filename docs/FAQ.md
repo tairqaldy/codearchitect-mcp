@@ -176,10 +176,11 @@ When you call `store_session`, here's what happens:
 2. **Topic Extraction**: If no topic provided, extract one from the conversation text
 3. **Project Detection**: Find the project root (checks env vars, then falls back to cwd)
 4. **Directory Setup**: Create `.codearchitect/sessions/YYYY-MM-DD/` if needed
-5. **Filename Generation**: Create unique filename like `session-20251112-113210-topic.md`
-6. **Markdown Formatting**: Convert conversation to markdown format
-7. **File Writing**: Write to disk with security checks (path validation)
-8. **Return Result**: Return file path, topic, date, etc.
+5. **Folder Name Generation**: Create unique topic folder name (handles collisions with `-1`, `-2`, etc.)
+6. **Folder Creation**: Create topic folder inside date folder
+7. **Markdown Formatting**: Generate both summary.md and full.md files
+8. **File Writing**: Write both files to disk with security checks (path validation)
+9. **Return Result**: Return summary file path, full file path, folder name, topic, date, etc.
 
 **Key Features:**
 - Handles edge cases (empty conversations, long conversations, etc.)
@@ -258,16 +259,17 @@ If something fails, you get a clear error message explaining what happened and w
 
 Just ask your AI assistant! For example:
 
-- "Store this conversation as a session"
-- "Save this discussion about database design"
-- "Store this session with topic 'API design'"
+- `"use codearchitect store_session"`
+- `"use codearchitect store_session \"database design\""`
+- `"Store this conversation as a session"`
+- `"Save this discussion about database design"`
 
 The AI will automatically call the `store_session` tool with the current conversation.
 
 **Manual Usage (if needed):**
 The tool accepts:
-- `conversation`: The conversation text (required)
-- `topic`: Optional topic/title
+- `conversation`: The conversation text (required) - **must be FULL content, not summaries**
+- `topic`: Optional topic/title (auto-extracted if not provided)
 - `format`: "plain" or "messages" (default: "plain")
 - `sessionsDir`: Custom directory (optional)
 
@@ -278,9 +280,11 @@ But you rarely need to call it manually - just ask the AI!
 <details>
 <summary><b>Where are sessions stored?</b></summary>
 
-Sessions are stored in:
+Sessions are stored in topic-named folders:
 ```
-<project-root>/.codearchitect/sessions/YYYY-MM-DD/session-YYYYMMDD-HHMMSS-topic.md
+<project-root>/.codearchitect/sessions/YYYY-MM-DD/topic-folder-name/
+  ├── summary.md
+  └── full.md
 ```
 
 **Example:**
@@ -288,10 +292,18 @@ Sessions are stored in:
 my-project/
   .codearchitect/
     sessions/
-      2025-11-12/
-        session-20251112-113210-database-design.md
-        session-20251112-140530-api-discussion.md
+      2025-11-17/
+        database-design/
+          ├── summary.md
+          └── full.md
+        api-discussion/
+          ├── summary.md
+          └── full.md
 ```
+
+**File Structure:**
+- `summary.md`: Short summary + detailed request/response pairs with key points
+- `full.md`: Complete conversation as JSON (TOON-optimized) + human-readable format
 
 **Custom Location:**
 You can override this with:
@@ -303,20 +315,20 @@ You can override this with:
 <details>
 <summary><b>How do I find old sessions?</b></summary>
 
-Sessions are just markdown files, so you can:
+Sessions are stored in organized folders, so you can:
 
-1. **Browse**: Navigate to `.codearchitect/sessions/` in your file explorer
-2. **Search**: Use your IDE's search to find sessions by content
-3. **Git**: Sessions are version controlled (if you commit them)
-4. **grep**: Search from command line: `grep -r "database" .codearchitect/sessions/`
+1. **Use get_session tool**: `"use codearchitect get_session"` to list all sessions
+2. **Browse**: Navigate to `.codearchitect/sessions/` in your file explorer
+3. **Search**: Use your IDE's search to find sessions by content
+4. **Git**: Sessions are version controlled (if you commit them)
+5. **grep**: Search from command line: `grep -r "database" .codearchitect/sessions/`
 
-**Future Features:**
-Planned tools for session management:
-- `list_sessions` - Browse all sessions
-- `search_sessions` - Full-text search
-- `get_session` - Retrieve specific session
+**Available Tools:**
+- `codearchitect_help` - See all available features
+- `get_session` - Retrieve specific session by folder name or list all sessions
+- `store_session` - Save conversations
 
-For now, use file system tools or git history.
+Sessions are organized by date folders and topic folders for easy navigation.
 
 </details>
 

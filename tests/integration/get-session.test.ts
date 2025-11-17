@@ -39,21 +39,24 @@ describe('get_session integration', () => {
   });
 
   describe('getSession - Get specific session', () => {
-    it('should get a session by filename', async () => {
+    it('should get a session by folder name', async () => {
+      // Use unique topic to avoid conflicts
+      const uniqueTopic = `authentication-${Date.now()}`;
       // Store a session first
       const storeResult = await sessionStoreManager.storeSession({
         conversation: [
           { role: 'user', content: 'How do I implement authentication?' },
           { role: 'assistant', content: 'You can use NextAuth.js' },
         ],
-        topic: 'authentication',
+        topic: uniqueTopic,
         format: 'messages',
       });
 
       expect(storeResult.success).toBe(true);
       expect(storeResult.filename).toBeDefined();
+      expect(storeResult.filename).toBe(uniqueTopic); // Folder name
 
-      // Get the session
+      // Get the session by folder name
       const getResult = await sessionRetrievalManager.getSession({
         filename: storeResult.filename!,
       });
@@ -61,8 +64,9 @@ describe('get_session integration', () => {
       expect(getResult.success).toBe(true);
       expect(getResult.session).toBeDefined();
       expect(getResult.session?.filename).toBe(storeResult.filename);
-      expect(getResult.session?.topic).toBe('authentication');
+      expect(getResult.session?.topic).toBe(uniqueTopic);
       expect(getResult.session?.file).toBeDefined();
+      expect(getResult.session?.file).toContain('full.md'); // Should prefer full.md
       expect(getResult.session?.content).toBeDefined();
     });
 
@@ -142,7 +146,7 @@ describe('get_session integration', () => {
 
     it('should return error for non-existent session', async () => {
       const getResult = await sessionRetrievalManager.getSession({
-        filename: 'non-existent-session.md',
+        filename: 'non-existent-session',
       });
 
       expect(getResult.success).toBe(false);
@@ -151,9 +155,10 @@ describe('get_session integration', () => {
     });
 
     it('should handle plain text conversations', async () => {
+      const uniqueTopic = `plain-text-test-${Date.now()}`;
       const storeResult = await sessionStoreManager.storeSession({
         conversation: 'This is a plain text conversation without structured messages.',
-        topic: 'plain-text-test',
+        topic: uniqueTopic,
         format: 'plain',
       });
 
@@ -164,8 +169,9 @@ describe('get_session integration', () => {
       expect(getResult.success).toBe(true);
       expect(getResult.session?.content).toBeDefined();
       expect(getResult.session?.content).toContain('plain text conversation');
-      // Plain text shouldn't have messages array
-      expect(getResult.session?.messages).toBeUndefined();
+      // Plain text is now normalized to messages array (with single user message)
+      // So messages may exist, but content should definitely exist
+      expect(getResult.session?.content).toBeDefined();
     });
   });
 
@@ -320,19 +326,19 @@ describe('get_session integration', () => {
       expect(getResult.session?.file).toContain('custom-sessions');
     });
 
-    it('should extract date from filename when date not provided', async () => {
+    it('should extract date from folder structure when date not provided', async () => {
+      const uniqueTopic = `date-test-${Date.now()}`;
       const storeResult = await sessionStoreManager.storeSession({
         conversation: 'Date extraction test',
-        topic: 'date-test',
+        topic: uniqueTopic,
       });
 
-      // Extract date from filename
-      const dateMatch = storeResult.filename?.match(/session-(\d{8})-/);
-      expect(dateMatch).toBeDefined();
+      expect(storeResult.success).toBe(true);
+      expect(storeResult.filename).toBe(uniqueTopic); // Folder name
 
       const getResult = await sessionRetrievalManager.getSession({
         filename: storeResult.filename!,
-        // Don't provide date - should extract from filename
+        // Don't provide date - should extract from folder path
       });
 
       expect(getResult.success).toBe(true);

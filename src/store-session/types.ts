@@ -13,8 +13,10 @@ export interface StoreSessionParams {
 
 export interface StoreSessionResult {
   success: boolean;
-  file?: string;
-  filename?: string;
+  file?: string; // Deprecated: kept for backward compatibility, use summaryFile and fullFile
+  summaryFile?: string; // Path to summary file
+  fullFile?: string; // Path to full context file
+  filename?: string; // Base filename without suffix
   topic?: string;
   date?: string;
   message?: string;

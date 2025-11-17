@@ -5,6 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.5] - 2025-11-17
+
+### Added
+- **`codearchitect_help` tool**: New help tool for discovering CodeArchitect features
+  - Lists all available features with descriptions and examples
+  - Provides usage patterns and next steps
+  - Can get detailed help for specific features
+- **Enhanced session storage**: Dual-file storage system for better organization
+  - Creates topic-named folders for better readability
+  - Stores `summary.md` and `full.md` files in each folder
+  - Summary file includes short summary and detailed request/response pairs
+  - Full context file includes complete JSON messages array (TOON-optimized) + human-readable format
+  - Automatic removal of redundant suffixes from folder names (e.g., "-summary", "-session")
+- **Improved tool descriptions**: Enhanced AI assistant guidance
+  - Clear "use codearchitect" usage patterns
+  - Compact, user-focused descriptions
+  - Explicit instructions to pass full conversation content (not summaries)
+  - Better when-to-use guidance for each tool
+
+### Changed
+- **Session storage structure**: Reorganized from flat files to folder-based organization
+  - Old: `session-YYYYMMDD-HHMMSS-topic-summary.md` and `session-YYYYMMDD-HHMMSS-topic-full.md`
+  - New: `topic-folder-name/summary.md` and `topic-folder-name/full.md`
+  - More readable and organized structure
+- **Retrieval system**: Enhanced to handle both old and new storage formats
+  - Automatically detects and handles folder-based sessions
+  - Smart file detection (prefers full context when available)
+  - Groups dual-file sessions in listings
+- **Markdown parser**: Updated to parse new full context format with JSON section
+  - Extracts JSON messages from full context files
+  - Falls back to markdown parsing for backward compatibility
+- **Tool descriptions**: Simplified and made more user-friendly
+  - Removed technical details users don't need (like TOON compression details)
+  - Focused on practical usage and examples
+  - Added next step suggestions
+
+### Performance
+- Full context files store complete JSON messages array ready for TOON conversion
+- Automatic TOON format optimization when retrieving sessions (~40% token reduction)
+
+### Documentation
+- Updated API documentation with new `codearchitect_help` tool
+- Updated storage structure documentation
+- Enhanced usage examples with folder-based structure
+
+[0.1.5]: https://github.com/tairqaldy/codearchitect-mcp/releases/tag/v0.1.5
+
 ## [0.1.4] - 2025-01-15
 
 ### Added

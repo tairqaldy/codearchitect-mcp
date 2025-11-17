@@ -48,13 +48,16 @@ Want to learn more? Check out our [FAQ](./docs/FAQ.md) for detailed explanations
 
 CodeArchitect MCP is evolving into a comprehensive toolkit for system design and architecture projects. The current `store_session` feature is just the beginning.
 
-### Current Features (v0.1.4)
-- ✅ **`store_session`**: Save AI conversation sessions as organized markdown files
+### Current Features (v0.1.5)
+- ✅ **`codearchitect_help`**: Discover available features and get usage guidance
+- ✅ **`store_session`**: Save AI conversation sessions with dual-file storage (summary + full context)
 - ✅ **`get_session`**: Retrieve stored sessions with TOON format support (~40% token reduction)
+- ✅ **Folder-based organization**: Sessions stored in topic-named folders for better readability
 - ✅ Auto-organization by date
-- ✅ Smart topic extraction
+- ✅ Smart topic extraction with redundant suffix removal
 - ✅ Configurable storage locations
 - ✅ **TOON Format**: Automatic token optimization for LLM interactions
+- ✅ **Full context storage**: Complete conversation stored as JSON (TOON-optimized) + human-readable format
 
 <details>
 <summary><b>Planned Features</b></summary>
@@ -245,23 +248,38 @@ VS Code has a built-in MCP server setup wizard that makes installation easy:
 <details>
 <summary><b>Basic Usage</b></summary>
 
-Simply ask your AI assistant to store the conversation:
+**Simple command pattern**: Use `"use codearchitect"` + feature name
 
 ```
-Store this conversation about implementing authentication
+use codearchitect store_session
+use codearchitect get_session
+use codearchitect
 ```
 
-Or with an explicit topic:
-
+**Store a conversation**:
 ```
-Save this session with topic "User Authentication Implementation"
+use codearchitect store_session
+use codearchitect store_session "authentication implementation"
+use codearchitect store_session in custom/path
+```
+
+**Get help**:
+```
+use codearchitect
+```
+
+**Retrieve a session**:
+```
+use codearchitect get_session
+use codearchitect get_session session-storage-reorganization
+use codearchitect get_session 2025-11-17
 ```
 
 The tool automatically:
 1. Extracts the topic (or uses yours)
 2. Detects your project root
-3. Creates `.codearchitect/sessions/YYYY-MM-DD/`
-4. Saves as `session-YYYYMMDD-HHMMSS-topic-slug.md`
+3. Creates `.codearchitect/sessions/YYYY-MM-DD/topic-folder/`
+4. Saves as `summary.md` and `full.md` in the topic folder
 
 </details>
 
@@ -273,46 +291,67 @@ The tool automatically:
 your-project/
 └── .codearchitect/
     └── sessions/
-        └── 2025-11-11/
-            └── session-20251111-143022-topic.md
+        └── 2025-11-17/
+            ├── authentication-implementation/
+            │   ├── summary.md
+            │   └── full.md
+            └── database-migration/
+                ├── summary.md
+                └── full.md
 ```
 
 **Custom Global Directory** (if configured):
 ```
 Documents/
 └── ai-sessions/
-    └── 2025-11-11/
-        └── session-20251111-143022-topic.md
+    └── 2025-11-17/
+        └── topic-folder/
+            ├── summary.md
+            └── full.md
 ```
+
+**File Structure**:
+- `summary.md`: Short summary + detailed request/response pairs with key points
+- `full.md`: Complete conversation as JSON (TOON-optimized) + human-readable format
 
 </details>
 
 <details>
 <summary><b>Usage Examples</b></summary>
 
-**Example 1**: Store current conversation
+**Example 1**: Get help
 ```
-Store this conversation
-```
-
-**Example 2**: Store with explicit topic
-```
-Store this session with topic "Database Migration Strategy"
+use codearchitect
 ```
 
-**Example 3**: Store specific discussion
+**Example 2**: Store current conversation
 ```
-Save our conversation about implementing JWT authentication
-```
-
-**Example 4**: Retrieve a stored session
-```
-Get session session-20250115-143022-authentication-implementation.md
+use codearchitect store_session
 ```
 
-**Example 5**: List all sessions from a date
+**Example 3**: Store with explicit topic
 ```
-List all sessions from 2025-01-15
+use codearchitect store_session "Database Migration Strategy"
+```
+
+**Example 4**: Store in custom location
+```
+use codearchitect store_session in custom/path
+```
+
+**Example 5**: Retrieve a stored session (by topic folder name)
+```
+use codearchitect get_session authentication-implementation
+```
+
+**Example 6**: List all sessions from a date
+```
+use codearchitect get_session 2025-11-17
+```
+
+**Example 7**: List all sessions
+```
+use codearchitect get_session
 ```
 
 </details>
@@ -347,16 +386,50 @@ Topics are extracted in this priority:
 4. Keywords from first 200 characters
 5. Timestamp-based fallback
 
+**Folder Name Cleanup**: Redundant suffixes like "-summary", "-session", "-conversation", "-chat" are automatically removed from folder names for better readability.
+
 </details>
 
 ## 📚 API Reference
 
 <details>
-<summary><b>Tool: store_session</b></summary>
+<summary><b>Tool: codearchitect_help</b></summary>
+
+Get help about CodeArchitect MCP features. Use when user says "use codearchitect" without specifying a feature.
 
 ### Parameters
 
-- `conversation` (string | array, required): Conversation text or array of messages
+- `feature` (string, optional): Specific feature name to get help for (store_session, get_session). If not provided, returns help for all features.
+
+### Response
+
+**Success**:
+```json
+{
+  "success": true,
+  "message": "CodeArchitect MCP - Available Features",
+  "usage_pattern": "Say \"use codearchitect [feature_name]\" or just \"use codearchitect\" to see options",
+  "features": [
+    {
+      "name": "store_session",
+      "description": "Save important conversations for future reference",
+      "usage": "use codearchitect store_session [topic]",
+      "examples": ["use codearchitect store_session", "use codearchitect store_session \"authentication implementation\""]
+    }
+  ]
+}
+```
+
+</details>
+
+<details>
+<summary><b>Tool: store_session</b></summary>
+
+Save important conversations for future reference. Creates a topic-named folder with `summary.md` and `full.md` files.
+
+### Parameters
+
+- `conversation` (string | array, required): **FULL** conversation thread text or JSON array of messages with COMPLETE content. Must include all actual messages, code, explanations - NOT summaries or placeholders.
 - `topic` (string, optional): Session topic/title (auto-extracted if not provided)
 - `format` (string, optional): `"plain"` (default) or `"messages"`
 - `sessionsDir` (string, optional): Custom directory for storing sessions
@@ -367,11 +440,12 @@ Topics are extracted in this priority:
 ```json
 {
   "success": true,
-  "file": "/path/to/session.md",
-  "filename": "session-20251111-143022-topic.md",
+  "summaryFile": "/path/to/topic-folder/summary.md",
+  "fullFile": "/path/to/topic-folder/full.md",
+  "filename": "topic-folder-name",
   "topic": "topic",
-  "date": "2025-11-11T14:30:22.123Z",
-  "message": "Session saved successfully"
+  "date": "2025-11-17T14:30:22.123Z",
+  "message": "Session saved in folder topic-folder-name: summary.md and full.md"
 }
 ```
 
@@ -404,11 +478,12 @@ Topics are extracted in this priority:
 {
   "success": true,
   "session": {
-    "filename": "session-20250115-143022-topic.md",
+    "filename": "topic-folder-name",
     "topic": "topic",
-    "date": "2025-01-15T14:30:22.123Z",
-    "file": "/path/to/session.md",
-    "content": "# topic\n\nConversation content...",
+    "date": "2025-11-17T14:30:22.123Z",
+    "file": "/path/to/topic-folder/full.md",
+    "content": "messages[5\t]{role\tcontent}:...",
+    "messages": [{"role": "user", "content": "..."}, ...],
     "format": "toon"
   }
 }
@@ -420,10 +495,10 @@ Topics are extracted in this priority:
   "success": true,
   "sessions": [
     {
-      "filename": "session-20250115-143022-topic.md",
+      "filename": "topic-folder-name",
       "topic": "topic",
-      "date": "2025-01-15T14:30:22.123Z",
-      "file": "/path/to/session.md",
+      "date": "2025-11-17",
+      "file": "/path/to/topic-folder/full.md",
       "size": 2048
     }
   ],
@@ -431,6 +506,8 @@ Topics are extracted in this priority:
   "format": "toon"
 }
 ```
+
+**Note**: When retrieving by base filename (without suffix), the system automatically prefers `full.md` for complete context. You can also specify `-summary.md` or `-full.md` explicitly.
 
 **TOON Format**: Automatically reduces token usage by ~40% for uniform data structures (message arrays, session lists). Falls back to JSON for non-uniform data.
 
@@ -514,31 +591,40 @@ npm test
 - Write tests for new features
 - Maintain 80%+ test coverage
 
-### Project Structure (v0.1.4+)
+### Project Structure (v0.1.5+)
 
 The codebase uses a **feature-based folder structure** for better organization and scalability:
 
 ```
 src/
-├── server.ts                    # Main MCP server entry point
+├── server.ts                    # Main MCP server entry point (registers all tools)
 ├── store-session/              # Store session feature
-│   ├── SessionStoreManager.ts  # Core store logic
-│   ├── markdown-formatter.ts   # Formats conversations to markdown
+│   ├── SessionStoreManager.ts  # Core store logic (creates topic folders)
+│   ├── markdown-formatter.ts   # Formats conversations (summary + full context)
 │   ├── topic-extractor.ts      # Extracts topics from conversations
 │   ├── input-validator.ts      # Validates store_session inputs
 │   ├── types.ts                # StoreSessionParams, StoreSessionResult
 │   └── index.ts                # Feature exports
 ├── get-session/                # Get session feature
-│   ├── SessionRetrievalManager.ts  # Core retrieval logic
-│   ├── markdown-parser.ts      # Parses stored markdown files
+│   ├── SessionRetrievalManager.ts  # Core retrieval logic (handles old + new formats)
+│   ├── markdown-parser.ts      # Parses stored markdown files (JSON + markdown)
 │   ├── toon-formatter.ts       # TOON format encoding (~40% token reduction)
 │   ├── types.ts                # GetSessionParams, GetSessionResult, SessionInfo
 │   └── index.ts                # Feature exports
 └── shared/                     # Shared utilities across features
-    ├── filesystem.ts           # File operations (read, write, list, etc.)
+    ├── filesystem.ts           # File operations (generateTopicFolderName, etc.)
     ├── errors.ts               # SessionError, handleError
     ├── types.ts                # Message (shared type)
     └── index.ts                # Shared exports
+```
+
+**Session Storage Structure**:
+```
+.codearchitect/sessions/
+└── YYYY-MM-DD/                 # Date folders
+    └── topic-folder-name/       # Topic-named folders
+        ├── summary.md          # Short summary + detailed request/response pairs
+        └── full.md             # Complete JSON + human-readable format
 ```
 
 **Benefits:**
@@ -566,7 +652,26 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ## 📊 Changelog
 
 <details>
-<summary><b>v0.1.4 (Current)</b></summary>
+<summary><b>v0.1.5 (Current)</b></summary>
+
+### Added
+- **`codearchitect_help` tool**: Discover available features and get usage guidance
+- **Enhanced session storage**: Dual-file storage system (summary.md + full.md in topic folders)
+- **Folder-based organization**: Sessions stored in readable topic-named folders
+- **Full context storage**: Complete conversation as JSON (TOON-optimized) + human-readable format
+- **Improved tool descriptions**: Enhanced AI assistant guidance with "use codearchitect" patterns
+
+### Changed
+- **Session storage structure**: Reorganized from flat files to folder-based organization
+- **Retrieval system**: Enhanced to handle both old and new storage formats
+- **Tool descriptions**: Simplified and made more user-friendly
+
+See [CHANGELOG.md](./CHANGELOG.md) for complete version history.
+
+</details>
+
+<details>
+<summary><b>v0.1.4</b></summary>
 
 ### Added
 - **`get_session` tool**: Retrieve stored conversation sessions

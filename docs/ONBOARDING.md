@@ -31,6 +31,24 @@ npm install -g codearchitect-mcp
 
 ### 3. Restart IDE → Done! ✅
 
+### 4. Start Using Immediately! 🚀
+
+After installation, you can start using CodeArchitect right away - no need to read all the docs! Simply ask your AI assistant:
+
+```
+use codearchitect
+```
+
+or
+
+```
+codearchitect help
+```
+
+The AI will show you all available features with examples and guide you through using them. That's it! You're ready to start storing and retrieving conversations.
+
+**Pro tip:** Just say `"use codearchitect"` anytime you want to see what's available, or `"use codearchitect store_session"` to save a conversation.
+
 ---
 
 ## 🧠 Become a Smarter Developer (3 minutes)
@@ -66,21 +84,32 @@ npm install -g codearchitect-mcp
 
 **How:**
 ```
+use codearchitect store_session
+use codearchitect store_session "authentication implementation"
+```
+
+Or simply:
+```
 Store this conversation about implementing authentication
 ```
 
-**Pro tip:** Store sessions **during** conversations, not after. AI has full context.
+**Pro tip:** Store sessions **during** conversations, not after. AI has full context. Use `"use codearchitect"` to discover features without reading docs!
 
 ### 2. Retrieve When Needed
 
 **Get specific session:**
 ```
-Get session session-20250115-143022-authentication-implementation.md
+use codearchitect get_session authentication-implementation
 ```
 
 **List recent sessions:**
 ```
-List all sessions from 2025-01-15
+use codearchitect get_session 2025-01-15
+```
+
+**List all sessions:**
+```
+use codearchitect get_session
 ```
 
 **Why this matters:** Instead of re-explaining everything, retrieve past context. Saves ~60% tokens.
@@ -133,6 +162,12 @@ your-project/
 └── .codearchitect/
     └── sessions/            # Your AI conversation history
         └── 2025-01-15/
+            ├── authentication-implementation/
+            │   ├── summary.md
+            │   └── full.md
+            └── database-migration/
+                ├── summary.md
+                └── full.md
 ```
 
 **Benefits:**
@@ -144,10 +179,10 @@ your-project/
 ### Store Sessions Per Feature
 
 ```
-Store this conversation about implementing user authentication feature
+use codearchitect store_session "user authentication feature"
 ```
 
-Sessions are automatically organized by date. Use descriptive topics.
+Sessions are automatically organized in topic-named folders by date. Use descriptive topics - redundant suffixes like "-summary" or "-session" are automatically removed for cleaner folder names.
 
 ---
 
@@ -161,7 +196,7 @@ Sessions are automatically organized by date. Use descriptive topics.
 **Example:**
 ```
 # Instead of explaining auth system every time:
-Get session session-20250115-143022-authentication-implementation.md
+use codearchitect get_session authentication-implementation
 
 # AI now has full context with 40% fewer tokens
 ```
@@ -246,10 +281,10 @@ Plus: **Better accuracy** from consistent context.
 ## 🔥 Quick Wins
 
 **Right now:**
-1. Store your current conversation
-2. List all sessions
-3. Get one session
-4. Notice the token difference
+1. Say `"use codearchitect"` to see available features
+2. Store your current conversation with `"use codearchitect store_session"`
+3. List all sessions with `"use codearchitect get_session"`
+4. Get one session and notice the token difference
 
 **This week:**
 1. Store 5 architecture discussions

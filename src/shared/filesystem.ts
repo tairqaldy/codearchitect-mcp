@@ -3,6 +3,13 @@ import { join, dirname, resolve, parse } from 'path';
 import { mkdir, writeFile as fsWriteFile, readFile, readdir } from 'fs/promises';
 
 /**
+ * Gets the local date string in YYYY-MM-DD format (not UTC)
+ */
+function getLocalDateString(date: Date = new Date()): string {
+  return date.toLocaleDateString('en-CA'); // Returns YYYY-MM-DD format
+}
+
+/**
  * Gets the workspace directory from environment variables or falls back to process.cwd()
  * This function prioritizes environment variables, then walks up looking for project markers
  */
@@ -116,33 +123,103 @@ export async function ensureDirectory(dirPath: string): Promise<void> {
 }
 
 /**
- * Generates a unique filename for a session, handling collisions.
+ * Generates a unique topic folder name for organizing sessions, handling collisions.
+ * Returns a readable folder name based on the topic.
  */
-export async function generateFilename(
+export async function generateTopicFolderName(
   date: Date,
   topic: string,
   sessionsDir: string
 ): Promise<string> {
-  const dateStr = date.toISOString().split('T')[0].replace(/-/g, '');
-  const timeStr = date.toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
-  const topicSlug = slugify(topic);
-
-  const baseFilename = `session-${dateStr}-${timeStr}-${topicSlug}.md`;
-
-  // Handle collisions
-  let filename = baseFilename;
-  let counter = 1;
-  const dateFolder = date.toISOString().split('T')[0];
+  const dateFolder = getLocalDateString(date);
+  let topicSlug = slugify(topic);
   
+  // Remove common redundant suffixes that don't add value to folder names
+  const redundantSuffixes = ['-summary', '-session', '-conversation', '-chat'];
+  for (const suffix of redundantSuffixes) {
+    if (topicSlug.endsWith(suffix)) {
+      topicSlug = topicSlug.slice(0, -suffix.length);
+      break; // Only remove one suffix
+    }
+  }
+  
+  // Create readable folder name: topic-slug
+  const baseFolderName = topicSlug;
+  const fullDateDir = join(sessionsDir, dateFolder);
+
+  // Handle collisions - check if folder already exists
+  let folderName = baseFolderName;
+  let counter = 1;
+
   while (true) {
-    const fullPath = join(sessionsDir, dateFolder, filename);
-    if (!existsSync(fullPath)) {
+    const folderPath = join(fullDateDir, folderName);
+    
+    if (!existsSync(folderPath)) {
       break;
     }
     
-    const ext = '.md';
-    const base = baseFilename.replace(ext, '');
-    filename = `${base}-${counter}${ext}`;
+    // Check if folder contains summary.md or full.md (might be empty folder)
+    try {
+      const entries = await readdir(folderPath, { withFileTypes: true });
+      const hasFiles = entries.some(entry => 
+        entry.isFile() && (entry.name === 'summary.md' || entry.name === 'full.md')
+      );
+      
+      if (!hasFiles) {
+        // Empty folder, can reuse
+        break;
+      }
+    } catch {
+      // Error reading directory, assume it exists and has content
+    }
+    
+    folderName = `${baseFolderName}-${counter}`;
+    counter++;
+
+    if (counter > 1000) {
+      // Safety limit
+      throw new Error('Too many folders with same name');
+    }
+  }
+
+  return folderName;
+}
+
+/**
+ * Generates a unique base filename (without extension) for a session, handling collisions.
+ * Checks both -summary.md and -full.md files for collisions.
+ * Legacy function - kept for backward compatibility with old file structure.
+ */
+export async function generateBaseFilename(
+  date: Date,
+  topic: string,
+  sessionsDir: string
+): Promise<string> {
+  const localDateStr = getLocalDateString(date);
+  const dateStr = localDateStr.replace(/-/g, '');
+  // Get local time components (not UTC)
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  const timeStr = `${hours}${minutes}${seconds}`;
+  const topicSlug = slugify(topic);
+
+  const baseName = `session-${dateStr}-${timeStr}-${topicSlug}`;
+  const dateFolder = localDateStr;
+
+  // Handle collisions - check both summary and full files
+  let baseFilename = baseName;
+  let counter = 1;
+
+  while (true) {
+    const summaryPath = join(sessionsDir, dateFolder, `${baseFilename}-summary.md`);
+    const fullPath = join(sessionsDir, dateFolder, `${baseFilename}-full.md`);
+    
+    if (!existsSync(summaryPath) && !existsSync(fullPath)) {
+      break;
+    }
+    
+    baseFilename = `${baseName}-${counter}`;
     counter++;
 
     if (counter > 1000) {
@@ -151,7 +228,20 @@ export async function generateFilename(
     }
   }
 
-  return filename;
+  return baseFilename;
+}
+
+/**
+ * Generates a unique filename for a session, handling collisions.
+ * Legacy function - kept for backward compatibility.
+ */
+export async function generateFilename(
+  date: Date,
+  topic: string,
+  sessionsDir: string
+): Promise<string> {
+  const baseFilename = await generateBaseFilename(date, topic, sessionsDir);
+  return `${baseFilename}.md`;
 }
 
 /**

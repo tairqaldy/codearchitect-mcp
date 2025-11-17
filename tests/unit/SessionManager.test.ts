@@ -49,14 +49,16 @@ describe('SessionManager', () => {
       const result = await sessionStoreManager.storeSession(params);
 
       expect(result.success).toBe(true);
-      expect(result.file).toBeDefined();
+      expect(result.summaryFile).toBeDefined();
+      expect(result.fullFile).toBeDefined();
       expect(result.filename).toBeDefined();
       expect(result.topic).toBe('test-session');
       expect(result.date).toBeDefined();
       expect(result.message).toBeDefined();
 
-      if (result.file) {
-        expect(existsSync(result.file)).toBe(true);
+      if (result.summaryFile && result.fullFile) {
+        expect(existsSync(result.summaryFile)).toBe(true);
+        expect(existsSync(result.fullFile)).toBe(true);
       }
     });
 
@@ -72,23 +74,28 @@ describe('SessionManager', () => {
       const result = await sessionStoreManager.storeSession(params);
 
       expect(result.success).toBe(true);
-      expect(result.file).toBeDefined();
+      expect(result.summaryFile).toBeDefined();
+      expect(result.fullFile).toBeDefined();
     });
 
-    it('should handle filename collisions', async () => {
+    it('should handle folder collisions', async () => {
+      // Use unique topic with timestamp to avoid conflicts from previous test runs
+      const uniqueTopic = `collision-test-${Date.now()}`;
       const params: StoreSessionParams = {
         conversation: 'test',
-        topic: 'collision-test',
+        topic: uniqueTopic,
       };
 
-      // Create first file
+      // Create first folder
       const result1 = await sessionStoreManager.storeSession(params);
       expect(result1.success).toBe(true);
+      expect(result1.filename).toBe(uniqueTopic);
 
-      // Create second file with same topic (should get -1 suffix)
+      // Create second folder with same topic (should get -1 suffix)
       const result2 = await sessionStoreManager.storeSession(params);
       expect(result2.success).toBe(true);
-      expect(result2.filename).toContain('-1.md');
+      expect(result2.filename).toBe(`${uniqueTopic}-1`);
+      expect(result2.filename).not.toBe(result1.filename);
     });
 
     it('should extract topic from conversation if not provided', async () => {
@@ -117,7 +124,7 @@ describe('SessionManager', () => {
       expect(result.warning).toContain('empty');
     });
 
-    it('should truncate very long conversations', async () => {
+    it('should handle very long conversations without truncation', async () => {
       const longText = 'x'.repeat(2 * 1024 * 1024); // 2MB
       const params: StoreSessionParams = {
         conversation: longText,
@@ -126,9 +133,10 @@ describe('SessionManager', () => {
 
       const result = await sessionStoreManager.storeSession(params);
 
+      // Long conversations are now stored fully (no truncation)
       expect(result.success).toBe(true);
-      expect(result.warning).toBeDefined();
-      expect(result.warning).toContain('truncated');
+      expect(result.summaryFile).toBeDefined();
+      expect(result.fullFile).toBeDefined();
     });
   });
 

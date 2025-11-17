@@ -13,6 +13,7 @@ export interface ParsedSession {
 
 /**
  * Parses a markdown session file to extract metadata and content
+ * Handles both old format and new dual-file format (summary + full context)
  */
 export function parseSessionMarkdown(content: string): ParsedSession {
   const lines = content.split('\n');
@@ -20,14 +21,23 @@ export function parseSessionMarkdown(content: string): ParsedSession {
   let date = '';
   let inConversation = false;
   let conversationStart = 0;
+  let isFullContext = false;
+  let jsonStart = -1;
+  let jsonEnd = -1;
+
+  // Check if this is a full context file (has JSON section)
+  const hasJsonSection = content.includes('## Full Conversation (JSON)');
+  if (hasJsonSection) {
+    isFullContext = true;
+  }
 
   // Extract topic from first heading
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     
-    // Extract topic from # heading
+    // Extract topic from # heading (remove " - Full Context" suffix if present)
     if (line.startsWith('# ') && !topic) {
-      topic = line.substring(2).trim();
+      topic = line.substring(2).trim().replace(' - Full Context', '');
     }
     
     // Extract date
@@ -35,11 +45,37 @@ export function parseSessionMarkdown(content: string): ParsedSession {
       date = line.replace('**Date:**', '').trim();
     }
     
-    // Find conversation section
-    if (line.startsWith('## Conversation')) {
+    // Find JSON section in full context files
+    if (isFullContext && line.startsWith('```json')) {
+      jsonStart = i + 1;
+    }
+    if (isFullContext && jsonStart >= 0 && line.startsWith('```') && i > jsonStart) {
+      jsonEnd = i;
+    }
+    
+    // Find conversation section (old format or human-readable section)
+    if (line.startsWith('## Conversation') || line.startsWith('## Human-Readable Format')) {
       inConversation = true;
       conversationStart = i + 1;
-      break;
+      if (!isFullContext) {
+        break;
+      }
+    }
+  }
+
+  // Try to parse JSON first (for full context files)
+  let messages: Message[] | undefined;
+  if (isFullContext && jsonStart >= 0 && jsonEnd > jsonStart) {
+    try {
+      const jsonContent = lines.slice(jsonStart, jsonEnd).join('\n');
+      const parsed = JSON.parse(jsonContent);
+      if (Array.isArray(parsed)) {
+        messages = parsed;
+      } else if (parsed.messages && Array.isArray(parsed.messages)) {
+        messages = parsed.messages;
+      }
+    } catch {
+      // JSON parsing failed, fall back to markdown parsing
     }
   }
 
@@ -58,18 +94,19 @@ export function parseSessionMarkdown(content: string): ParsedSession {
 
   const conversationContent = conversationLines.join('\n').trim();
 
-  // Try to parse messages if format is structured
-  let messages: Message[] | undefined;
-  try {
-    messages = parseMessagesFromMarkdown(conversationContent);
-  } catch {
-    // If parsing fails, leave messages undefined
+  // If we didn't get messages from JSON, try parsing from markdown
+  if (!messages) {
+    try {
+      messages = parseMessagesFromMarkdown(conversationContent);
+    } catch {
+      // If parsing fails, leave messages undefined
+    }
   }
 
   return {
     topic: topic || 'Untitled',
-    date: date || new Date().toISOString(),
-    content: conversationContent,
+    date: date || new Date().toLocaleDateString('en-CA'), // Use local date format
+    content: conversationContent || content, // Fallback to full content if no section found
     messages,
   };
 }
