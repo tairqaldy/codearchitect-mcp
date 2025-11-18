@@ -1,6 +1,6 @@
 # CodeArchitect MCP
 
-**Never lose an important AI conversation again.** CodeArchitect MCP automatically saves your conversations with AI assistants (like Claude, GPT-4, etc.) so you can retrieve them later instead of re-explaining everything. Think of it as your "second brain" for AI conversations - all your important discussions about architecture, code solutions, and design decisions are saved and searchable. Works seamlessly with Cursor and VS Code - just install, configure in 2 minutes, and start saving conversations. No complex setup, no configuration needed.
+**Your AI conversations shouldn't disappear.** CodeArchitect MCP automatically saves and retrieves your discussions with AI assistants, solving context continuity for developers. Never re-explain architecture decisions or code solutions. Built on Model Context Protocol (MCP) - works seamlessly with Cursor and VS Code. Expanding into comprehensive system design and architecture assistance.
 
 ## 🚀 Quick Start (2 minutes)
 
