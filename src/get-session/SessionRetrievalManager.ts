@@ -5,7 +5,6 @@
 import type { GetSessionParams, GetSessionResult, SessionInfo } from './types.js';
 import type { Message } from '../shared/types.js';
 import {
-  detectProjectRoot,
   validatePath,
   getSessionsDirectory,
   readFileContent,
@@ -28,16 +27,8 @@ export class SessionRetrievalManager {
         throw new SessionError('INVALID_INPUT', 'Filename is required');
       }
 
-      // Detect project root
-      let projectRoot: string;
-      try {
-        projectRoot = detectProjectRoot();
-      } catch {
-        projectRoot = process.cwd();
-      }
-
-      // Get sessions directory
-      const sessionsDir = getSessionsDirectory(projectRoot, params.sessionsDir);
+      // Get sessions directory - always use main folder (no project detection)
+      const sessionsDir = getSessionsDirectory('', params.sessionsDir);
 
       // Determine date folder
       const dateFolder = params.date || this.extractDateFromFilename(params.filename);
@@ -220,16 +211,8 @@ export class SessionRetrievalManager {
    */
   async listSessions(params: GetSessionParams = {}): Promise<GetSessionResult> {
     try {
-      // Detect project root
-      let projectRoot: string;
-      try {
-        projectRoot = detectProjectRoot();
-      } catch {
-        projectRoot = process.cwd();
-      }
-
-      // Get sessions directory
-      const sessionsDir = getSessionsDirectory(projectRoot, params.sessionsDir);
+      // Get sessions directory - always use main folder (no project detection)
+      const sessionsDir = getSessionsDirectory('', params.sessionsDir);
 
       const sessions: SessionInfo[] = [];
 

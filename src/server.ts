@@ -15,7 +15,7 @@ import { handleError } from './shared/errors.js';
 const server = new Server(
   {
     name: 'codearchitect-mcp',
-    version: '0.1.5',
+    version: '0.1.6',
   },
   {
     capabilities: {
@@ -82,9 +82,41 @@ server.setRequestHandler(ListToolsRequestSchema, async (): Promise<ListToolsResu
       },
       {
         name: 'store_session',
-        description: `[CodeArchitect] Save important conversations for future reference. Use when user says "use codearchitect store_session", "save this conversation", or wants to keep/remember something. Can include topic or location/path. Saves to .codearchitect/sessions/ organized by date.
+        description: `[CodeArchitect] Save important conversations for future reference.
 
-IMPORTANT: When calling this tool, the conversation parameter MUST contain the FULL, COMPLETE content of all messages - not summaries or placeholders. Include all actual code, explanations, responses, and details. Do NOT use placeholders like "[I did X]" or "[I explained Y]". Pass the actual full conversation content.`,
+=== WHEN TO USE ===
+- User says: "use codearchitect store_session", "save this conversation", "store this", "remember this"
+- User wants to keep/remember an important discussion
+- After solving complex problems or making architecture decisions
+
+=== STORAGE BEHAVIOR ===
+1. ALWAYS saves to main folder: ~/.codearchitect/sessions/ (user's home directory)
+2. OPTIONALLY saves to project folder if user specifies projectDir parameter
+3. NEVER auto-detects project - only use projectDir if user explicitly provides it
+
+=== WORKFLOW ===
+Step 1: Save to main folder (always happens automatically)
+Step 2: Ask user: "Do you want to also save this to a specific project folder?"
+Step 3: If user provides project path, include projectDir parameter in the SAME tool call
+        → This saves to BOTH main folder AND project/.codearchitect/sessions/
+
+=== CRITICAL REQUIREMENTS ===
+- conversation parameter: MUST contain FULL, COMPLETE content of ALL messages
+  - Include all actual code, explanations, responses, details
+  - NO summaries or placeholders like "[I did X]" or "[I explained Y]"
+  - NO truncated content - pass everything
+  - Only include messages from current session, not previous stored sessions
+
+=== PARAMETERS ===
+- conversation (required): Full conversation text or JSON array with complete content
+- topic (optional): Session topic - auto-extracted if not provided
+- projectDir (optional): Project directory path - if provided, saves to both main and project folders
+- format (optional): "plain" or "messages" - default "plain"
+
+=== RESPONSE ===
+After saving, return concise message:
+- "Saved to main: [topic-name]. Next: use codearchitect get_session [topic-name]"
+- Or if projectDir provided: "Saved to main: [topic-name] and project: [topic-name]. Next: use codearchitect get_session [topic-name]"`,
         inputSchema: {
           type: 'object',
           properties: {
@@ -102,9 +134,9 @@ IMPORTANT: When calling this tool, the conversation parameter MUST contain the F
               description: 'Format of conversation input. "plain" for text, "messages" for JSON array. Default: "plain"',
               default: 'plain',
             },
-            sessionsDir: {
+            projectDir: {
               type: 'string',
-              description: 'Optional: Custom directory for storing sessions. If not provided, uses CODEARCHITECT_SESSIONS_DIR env var or defaults to .codearchitect/sessions/ in project root.',
+              description: 'Optional: Project directory path. If specified, saves to BOTH main folder (~/.codearchitect/sessions/) AND project/.codearchitect/sessions/. Always saves to main folder first, then also to project folder.',
             },
           },
           required: ['conversation'],
@@ -112,13 +144,28 @@ IMPORTANT: When calling this tool, the conversation parameter MUST contain the F
       },
       {
         name: 'get_session',
-        description: `[CodeArchitect] Retrieve previous conversations to avoid re-explaining. Use when user says "use codearchitect get_session", "get that previous conversation", or mentions something they discussed before. Can specify filename or date to filter. Lists all sessions if no parameters provided.`,
+        description: `[CodeArchitect] Retrieve previous conversations to avoid re-explaining.
+
+=== WHEN TO USE ===
+- User says: "use codearchitect get_session", "get that previous conversation", "retrieve session"
+- User mentions something they discussed before
+- User wants to continue work on a previous topic
+
+=== STORAGE BEHAVIOR ===
+- Always retrieves from main folder: ~/.codearchitect/sessions/ (user's home directory)
+- No project detection - all sessions are in main folder
+
+=== USAGE ===
+- No parameters: Lists all sessions
+- filename: Get specific session by topic folder name
+- date: List sessions from specific date (YYYY-MM-DD format)
+- limit: Limit number of results when listing`,
         inputSchema: {
           type: 'object',
           properties: {
             filename: {
               type: 'string',
-              description: 'Optional: Specific session filename to retrieve. If not provided, lists all sessions.',
+              description: 'Optional: Specific session filename (topic folder name) to retrieve. If not provided, lists all sessions.',
             },
             date: {
               type: 'string',
@@ -133,10 +180,6 @@ IMPORTANT: When calling this tool, the conversation parameter MUST contain the F
             limit: {
               type: 'number',
               description: 'Optional: Limit number of sessions returned when listing. Default: no limit',
-            },
-            sessionsDir: {
-              type: 'string',
-              description: 'Optional: Custom directory for storing sessions. If not provided, uses CODEARCHITECT_SESSIONS_DIR env var or defaults to .codearchitect/sessions/ in project root.',
             },
           },
         },
@@ -209,7 +252,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
         conversation: conversation as string | Array<{ role: string; content: unknown }>,
         topic: args.topic as string | undefined,
         format: (args.format as 'plain' | 'messages') || 'plain',
-        sessionsDir: args.sessionsDir as string | undefined,
+        projectDir: args.projectDir as string | undefined,
       });
 
       return {
@@ -228,13 +271,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
             filename: args.filename as string,
             date: args.date as string | undefined,
             format: (args.format as 'json' | 'toon' | 'auto') || 'auto',
-            sessionsDir: args.sessionsDir as string | undefined,
           })
         : await sessionRetrievalManager.listSessions({
             date: args.date as string | undefined,
             format: (args.format as 'json' | 'toon' | 'auto') || 'auto',
             limit: args.limit as number | undefined,
-            sessionsDir: args.sessionsDir as string | undefined,
           });
 
       return {

@@ -1,12 +1,23 @@
 import { existsSync, statSync } from 'fs';
 import { join, dirname, resolve, parse } from 'path';
 import { mkdir, writeFile as fsWriteFile, readFile, readdir } from 'fs/promises';
+import { homedir } from 'os';
 
 /**
  * Gets the local date string in YYYY-MM-DD format (not UTC)
  */
 function getLocalDateString(date: Date = new Date()): string {
   return date.toLocaleDateString('en-CA'); // Returns YYYY-MM-DD format
+}
+
+/**
+ * Gets the default sessions directory in main .codearchitect/ folder in user's home directory
+ * This is the main "second brain" location - always reliable, no project detection needed
+ */
+function getDefaultSessionsDirectory(): string {
+  // Always use main .codearchitect/ folder in user's home directory
+  // This is the central location for all sessions
+  return join(homedir(), '.codearchitect', 'sessions');
 }
 
 /**
@@ -36,8 +47,9 @@ function getWorkspaceDir(): string {
 
 /**
  * Gets the sessions directory from environment variable or uses default
+ * Default is now VS Code/Cursor config folder, not project root
  */
-export function getSessionsDirectory(projectRoot: string, customDir?: string): string {
+export function getSessionsDirectory(_projectRoot: string, customDir?: string): string {
   // Priority 1: Custom directory provided via parameter
   if (customDir) {
     return resolve(customDir);
@@ -49,8 +61,9 @@ export function getSessionsDirectory(projectRoot: string, customDir?: string): s
     return resolve(envDir);
   }
 
-  // Priority 3: Default to project's .codearchitect/sessions/
-  return join(projectRoot, '.codearchitect', 'sessions');
+  // Priority 3: Default to VS Code/Cursor config folder (works automatically)
+  // This avoids workspace detection issues and works without cwd configuration
+  return getDefaultSessionsDirectory();
 }
 
 /**

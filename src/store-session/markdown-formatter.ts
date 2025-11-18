@@ -4,7 +4,7 @@
 
 import type { Message } from '../shared/types.js';
 
-const VERSION = '0.1.5';
+const VERSION = '0.1.6';
 
 /**
  * Legacy format - kept for backward compatibility

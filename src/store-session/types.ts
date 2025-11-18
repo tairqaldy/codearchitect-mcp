@@ -9,6 +9,7 @@ export interface StoreSessionParams {
   topic?: string;
   format?: 'plain' | 'messages';
   sessionsDir?: string; // Optional: Custom directory for storing sessions
+  projectDir?: string; // Optional: Project directory - if specified, saves to both config folder and project folder
 }
 
 export interface StoreSessionResult {

@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.6] - 2025-11-18
+
+### Changed
+- **Simplified storage logic**: Always saves to main `.codearchitect/` folder in home directory (`~/.codearchitect/sessions/`)
+  - No automatic project detection - prevents data loss from random project detection
+  - Reliable main "second brain" location that always works
+  - Optional project save: Users can specify `projectDir` to save to both main folder and project folder
+- **Removed customization complexity**: Removed `sessionsDir` parameter from tool schemas
+  - Simpler setup - just works automatically
+  - One reliable default location
+- **Enhanced tool descriptions**: Structured with clear sections (WHEN TO USE, STORAGE BEHAVIOR, WORKFLOW, etc.)
+  - Better AI assistant guidance
+  - Clearer instructions for dual-save feature
+
+### Fixed
+- **Project detection issues**: Removed automatic project detection that caused sessions to save in wrong locations
+- **Tool visibility**: Fixed issue where only one tool was visible (all 3 tools now properly registered)
+- **Configuration complexity**: Simplified to single reliable setup option using `npx`
+
+### Documentation
+- Simplified README with one clear setup option
+- Updated all docs to reflect new storage behavior (main folder default)
+- Added human-friendly introduction explaining what MCP server is and why to use it
+
+[0.1.6]: https://github.com/tairqaldy/codearchitect-mcp/releases/tag/v0.1.6
+
 ## [0.1.5] - 2025-11-17
 
 ### Added
