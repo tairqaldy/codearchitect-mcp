@@ -31,9 +31,18 @@ export class SessionStoreManager {
       let warning: string | undefined;
 
       // 1. Determine conversation source
-      if (params.conversation) {
-        // Use provided conversation
-        conversation = params.conversation;
+      // Check if conversation is explicitly provided (not null, not undefined)
+      // null is treated as not provided (will try to find export file)
+      const conversationProvided = 'conversation' in params && params.conversation !== undefined && params.conversation !== null;
+      
+      if (conversationProvided) {
+        // Use provided conversation (even if empty string - will warn later)
+        conversation = params.conversation || '';
+        
+        // Check if empty and warn
+        if (!conversation || (typeof conversation === 'string' && conversation.trim().length === 0)) {
+          warning = 'Empty conversation provided. Session will be created with minimal content.';
+        }
       } else {
         // Try to find export file - ALWAYS in main location
         const exportsDir = getExportsDirectory();
