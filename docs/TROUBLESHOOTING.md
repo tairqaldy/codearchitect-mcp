@@ -3,41 +3,49 @@
 ## MCP Server Not Working
 
 **VS Code**:
-- Check `.vscode/settings.json` has `cwd: "${workspaceFolder}"`
 - Restart VS Code
 - Check MCP logs: View → Output → MCP
 
 **Cursor**:
-- Check `.cursor/mcp.json` exists
+- Check global `~/.cursor/mcp.json` exists (Windows: `C:\Users\YourName\.cursor\mcp.json`)
+- Verify MCP enabled: Settings → Features → Model Context Protocol
 - Verify JSON syntax
-- Restart Cursor
+- Reload Cursor: `Ctrl+Shift+P` → `Developer: Reload Window`
 
 ## Sessions Save in Wrong Location
 
-Sessions always save to main `.codearchitect/` folder in your home directory (`~/.codearchitect/sessions/`). This is intentional - it's your reliable "second brain" location.
+Sessions always save to `~/.codearchitect/sessions/` (main location). This is intentional.
 
-If you want to also save to a project folder, specify `projectDir` when storing a session. The AI will ask if you want to save to a project folder.
+To also save to project folder, specify `projectDir` when storing.
 
 ## Command Not Found
 
-Use `npx` (always works, no PATH issues):
+Use `npx` in global `~/.cursor/mcp.json` (Windows: `C:\Users\YourName\.cursor\mcp.json`):
 ```json
 {
   "mcpServers": {
     "codearchitect": {
       "command": "npx",
-      "args": ["-y", "codearchitect-mcp"]
+      "args": ["-y", "codearchitect-mcp@latest"]
     }
   }
 }
 ```
 
+**Important**: Use global config (not project-specific) for reliability.
+
+## Export File Not Found
+
+1. Export chat → Save to `~/.codearchitect/exports/`
+2. Use `exportFilename` parameter if file is older than 10 minutes
+3. Check path: Windows `C:\Users\YourName\.codearchitect\exports\`
+
 ## Sessions Not Saving
 
-- Check MCP server is running (green status)
-- Verify write permissions in home directory (`~/.codearchitect/sessions/`)
-- Check error messages in AI response
-- Restart IDE after configuration changes
+- Check MCP server status (green)
+- Verify write permissions in `~/.codearchitect/sessions/`
+- Check error messages
+- Restart IDE after config changes
 
 ## Need More Help?
 

@@ -15,7 +15,7 @@ import { handleError } from './shared/errors.js';
 const server = new Server(
   {
     name: 'codearchitect-mcp',
-    version: '0.1.6',
+    version: '0.1.7',
   },
   {
     capabilities: {
@@ -31,36 +31,90 @@ const sessionRetrievalManager = new SessionRetrievalManager();
 const FEATURES = {
   store_session: {
     name: 'store_session',
-    description: 'Save important conversations for future reference',
-    usage: 'use codearchitect store_session [topic]',
+    description: 'Save conversation to knowledge base',
+    usage: 'use codearchitect store_session',
     examples: [
       'use codearchitect store_session',
-      'use codearchitect store_session "authentication implementation"',
-      'use codearchitect store_session in custom/path',
+      'use codearchitect store_session topic: "auth implementation"',
+      'use codearchitect store_session projectDir: "/path/to/project"',
     ],
     when_to_use: [
       'After important discussions',
       'When solving complex problems',
-      'When documenting decisions',
+      'When documenting architecture decisions',
     ],
-    details: 'Saves the conversation as a markdown file organized by date. Mention a topic or location/path if needed. Next: Use get_session to retrieve saved conversations.',
+    details: 'Saves to ~/.codearchitect/sessions/ (always). Optionally also to project folder. Auto-detects export files from ~/.codearchitect/exports/. Next: Use get_session to retrieve.',
   },
   get_session: {
     name: 'get_session',
-    description: 'Retrieve previous conversations to avoid re-explaining',
+    description: 'Retrieve saved sessions from knowledge base',
     usage: 'use codearchitect get_session [filename] [date]',
     examples: [
       'use codearchitect get_session',
-      'use codearchitect get_session session-20250115-143022-auth.md',
-      'use codearchitect get_session 2025-01-15',
+      'use codearchitect get_session authentication-implementation',
+      'use codearchitect get_session 2025-11-19',
     ],
     when_to_use: [
-      'When you need context from a previous conversation',
-      'Before explaining something you already discussed',
-      'When continuing work on a previous topic',
+      'Before re-explaining something',
+      'When continuing previous work',
+      'When you need past context',
     ],
-    details: 'Retrieves stored sessions by filename or date. Lists all sessions if no parameters provided. Next: Use store_session to save new conversations.',
+    details: 'Retrieves from ~/.codearchitect/sessions/. Lists all if no params. Filter by filename or date. Next: Use store_session to save new conversations.',
   },
+};
+
+// Iterative workflow guide for building knowledge base
+const WORKFLOW_GUIDE = {
+  title: 'Iterative Knowledge Base Workflow',
+  description: 'Follow this cycle to continuously build your second brain',
+  steps: [
+    {
+      step: 1,
+      action: 'Have Conversation',
+      details: 'Discuss architecture, code solutions, design patterns, or any important topic with AI',
+    },
+    {
+      step: 2,
+      action: 'Export Chat',
+      details: 'In Cursor/VS Code: Three dots (⋯) → Export Chat → Save to ~/.codearchitect/exports/',
+      path: {
+        windows: 'C:\\Users\\YourName\\.codearchitect\\exports\\',
+        unix: '~/.codearchitect/exports/',
+      },
+    },
+    {
+      step: 3,
+      action: 'Store Session',
+      details: 'Say "use codearchitect store_session" → Auto-detects export file → Saves to ~/.codearchitect/sessions/',
+      optional: 'Add topic or projectDir if needed',
+    },
+    {
+      step: 4,
+      action: 'Continue Work',
+      details: 'Next conversation builds on previous knowledge. Reference past sessions when needed.',
+    },
+    {
+      step: 5,
+      action: 'Retrieve When Needed',
+      details: 'Say "use codearchitect get_session [topic]" → Get past context → Continue without re-explaining',
+    },
+    {
+      step: 6,
+      action: 'Repeat',
+      details: 'Continuously save important discussions → Build comprehensive knowledge base over time',
+    },
+  ],
+  storage: {
+    main: '~/.codearchitect/sessions/ (always)',
+    exports: '~/.codearchitect/exports/ (for auto-detection)',
+    optional: 'project/.codearchitect/sessions/ (if projectDir specified)',
+  },
+  tips: [
+    'Store after important discussions - architecture decisions, complex solutions, design patterns',
+    'Use descriptive topics - makes retrieval easier',
+    'Save regularly - build knowledge base iteratively',
+    'Retrieve before re-explaining - check if you already discussed it',
+  ],
 };
 
 // Register tools/list
@@ -94,35 +148,62 @@ server.setRequestHandler(ListToolsRequestSchema, async (): Promise<ListToolsResu
 2. OPTIONALLY saves to project folder if user specifies projectDir parameter
 3. NEVER auto-detects project - only use projectDir if user explicitly provides it
 
-=== WORKFLOW ===
-Step 1: Save to main folder (always happens automatically)
-Step 2: Ask user: "Do you want to also save this to a specific project folder?"
-Step 3: If user provides project path, include projectDir parameter in the SAME tool call
-        → This saves to BOTH main folder AND project/.codearchitect/sessions/
+=== CONVERSATION SOURCE (CHOOSE ONE) ===
 
-=== CRITICAL REQUIREMENTS ===
-- conversation parameter: MUST contain FULL, COMPLETE content of ALL messages
-  - Include all actual code, explanations, responses, details
-  - NO summaries or placeholders like "[I did X]" or "[I explained Y]"
-  - NO truncated content - pass everything
-  - Only include messages from current session, not previous stored sessions
+OPTION 1: Export File (RECOMMENDED - Most Reliable)
+- User exports conversation from Cursor/VS Code to .codearchitect/exports/ folder
+- Tool automatically detects and processes the export file
+- No need to manually extract conversation
+
+WORKFLOW:
+1. User exports chat: In Cursor/VS Code → three dots (⋯) → "Export Chat"
+2. User saves to: ~/.codearchitect/exports/ folder (main location - always the same)
+3. User says: "use codearchitect store_session"
+4. Tool automatically finds newest export file and stores it
+
+If multiple exports exist:
+- Tool processes newest file (modified in last 10 minutes)
+- If user wants specific file: use exportFilename parameter (e.g., "resolve_mcp")
+
+OPTION 2: Direct Conversation Parameter (Fallback)
+- Only use if export file method doesn't work
+- Extract FULL conversation from your context window
+- Format as plain text with USER/ASSISTANT markers OR JSON array
 
 === PARAMETERS ===
-- conversation (required): Full conversation text or JSON array with complete content
+- conversation (optional): Direct conversation text/JSON - only use if export file unavailable
+- exportFilename (optional): Pattern to match specific export file (e.g., "resolve_mcp" matches "cursor_resolve_mcp_configuration_issues.md")
 - topic (optional): Session topic - auto-extracted if not provided
 - projectDir (optional): Project directory path - if provided, saves to both main and project folders
 - format (optional): "plain" or "messages" - default "plain"
 
+=== WORKFLOW (EXPORT METHOD) ===
+Step 1: User exports conversation to ~/.codearchitect/exports/ folder (main location)
+Step 2: User says "use codearchitect store_session"
+Step 3: Tool detects export file automatically from main exports folder
+Step 4: Tool parses and stores conversation
+Step 5: Tool saves to main sessions folder (always) + optionally project folder if projectDir specified
+
+=== ERROR HANDLING ===
+If no export file found:
+- Return clear instructions with OS/IDE-specific export folder path
+- Tell user exactly where to save the export file
+- Provide step-by-step instructions
+
 === RESPONSE ===
 After saving, return concise message:
-- "Saved to main: [topic-name]. Next: use codearchitect get_session [topic-name]"
-- Or if projectDir provided: "Saved to main: [topic-name] and project: [topic-name]. Next: use codearchitect get_session [topic-name]"`,
+- "Detected export file '[filename]', saved to main: [topic-name]. Next: use codearchitect get_session [topic-name]"
+- Or if projectDir provided: "Detected export file '[filename]', saved to main: [topic-name] and project: [topic-name]. Next: use codearchitect get_session [topic-name]"`,
         inputSchema: {
           type: 'object',
           properties: {
             conversation: {
               type: 'string',
-              description: 'FULL conversation thread text or JSON array of messages with COMPLETE content. Must include all actual messages, code, explanations - NOT summaries or placeholders. Should only include messages from the current session, not from previous stored sessions. Required.',
+              description: 'OPTIONAL: Direct conversation text/JSON. Only use if export file method unavailable. If not provided, tool will automatically look for export file in .codearchitect/exports/ folder. Format as plain text with USER/ASSISTANT markers OR as JSON array [{"role": "user/assistant", "content": "..."}].',
+            },
+            exportFilename: {
+              type: 'string',
+              description: 'OPTIONAL: Pattern to match specific export file (case-insensitive). Example: "resolve_mcp" matches "cursor_resolve_mcp_configuration_issues.md". If not provided, tool uses newest export file (modified in last 10 minutes).',
             },
             topic: {
               type: 'string',
@@ -138,9 +219,9 @@ After saving, return concise message:
               type: 'string',
               description: 'Optional: Project directory path. If specified, saves to BOTH main folder (~/.codearchitect/sessions/) AND project/.codearchitect/sessions/. Always saves to main folder first, then also to project folder.',
             },
-          },
-          required: ['conversation'],
-        },
+           },
+           required: [], // No required parameters - conversation is optional, export file detection is automatic
+         },
       },
       {
         name: 'get_session',
@@ -220,21 +301,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
         };
       }
       
-      // Return all features
+      // Return all features + workflow guide
       return {
         content: [
           {
             type: 'text',
             text: JSON.stringify({
               success: true,
-              message: 'CodeArchitect MCP - Available Features',
+              message: 'CodeArchitect MCP - Available features:',
               usage_pattern: 'Say "use codearchitect [feature_name]" or just "use codearchitect" to see options',
+              workflow: WORKFLOW_GUIDE,
               features: Object.values(FEATURES).map(f => ({
                 name: f.name,
                 description: f.description,
                 usage: f.usage,
                 examples: f.examples.slice(0, 2), // Show first 2 examples
-                next_step: f.details.split('Next: ')[1] || undefined,
+                when_to_use: f.when_to_use,
+                details: f.details,
               })),
             }, null, 2),
           },
@@ -243,26 +326,63 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
     }
 
     if (toolName === 'store_session') {
-      const conversation = args.conversation;
-      if (!conversation) {
-        return handleError(new Error('Conversation parameter is required'));
-      }
-      
-      const result = await sessionStoreManager.storeSession({
-        conversation: conversation as string | Array<{ role: string; content: unknown }>,
-        topic: args.topic as string | undefined,
-        format: (args.format as 'plain' | 'messages') || 'plain',
-        projectDir: args.projectDir as string | undefined,
-      });
+      try {
+        const result = await sessionStoreManager.storeSession({
+          conversation: args.conversation as string | Array<{ role: string; content: unknown }> | undefined,
+          exportFilename: args.exportFilename as string | undefined,
+          topic: args.topic as string | undefined,
+          format: (args.format as 'plain' | 'messages') || 'plain',
+          projectDir: args.projectDir as string | undefined,
+        });
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(result),
-          },
-        ],
-      };
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result),
+            },
+          ],
+        };
+      } catch (error) {
+        // Handle SessionError with detailed instructions
+        if (error instanceof Error && error.name === 'SessionError') {
+          const sessionError = error as any;
+          const errorCode = sessionError.code || 'UNKNOWN_ERROR';
+          const errorMessage = sessionError.message || 'An error occurred';
+          const errorDetails = sessionError.details || '';
+          
+          // Check if it's a NO_CONVERSATION_OR_EXPORT error - provide export instructions
+          if (errorCode === 'NO_CONVERSATION_OR_EXPORT' || errorMessage.includes('no recent export file')) {
+            const { getExportFolderInstructions } = await import('./shared/filesystem.js');
+            const instructions = getExportFolderInstructions();
+            
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify({
+                    success: false,
+                    error: 'NO_CONVERSATION_OR_EXPORT',
+                    message: 'No conversation provided and no recent export file found.',
+                    instructions: {
+                      step1: instructions.instructions[0],
+                      step2: instructions.instructions[1],
+                      step3: instructions.instructions[2],
+                      folderPath: instructions.folderPath,
+                      fullPath: instructions.fullPath,
+                      note: 'The folder will be created automatically if it doesn\'t exist.',
+                    },
+                    details: errorDetails,
+                  }, null, 2),
+                },
+              ],
+            };
+          }
+        }
+        
+        // Re-throw to be handled by outer catch
+        throw error;
+      }
     }
 
     if (toolName === 'get_session') {

@@ -1,7 +1,7 @@
 import { existsSync, statSync } from 'fs';
 import { join, dirname, resolve, parse } from 'path';
-import { mkdir, writeFile as fsWriteFile, readFile, readdir } from 'fs/promises';
-import { homedir } from 'os';
+import { mkdir, writeFile as fsWriteFile, readFile, readdir, stat } from 'fs/promises';
+import { homedir, platform } from 'os';
 
 /**
  * Gets the local date string in YYYY-MM-DD format (not UTC)
@@ -360,5 +360,179 @@ export function getFileStats(filePath: string): { size: number; exists: boolean 
     return { size: stats.size, exists: true };
   } catch {
     return { size: 0, exists: false };
+  }
+}
+
+/**
+ * Gets the exports directory path - ALWAYS in main location
+ * Exports always go to ~/.codearchitect/exports/ (main "second brain" location)
+ * This simplifies the workflow - one place for all exports
+ */
+export function getExportsDirectory(): string {
+  return join(homedir(), '.codearchitect', 'exports');
+}
+
+/**
+ * Gets OS-specific and IDE-specific export folder instructions
+ * Always shows main location (~/.codearchitect/exports/)
+ */
+export function getExportFolderInstructions(): {
+  folderPath: string;
+  instructions: string[];
+  fullPath: string;
+} {
+  const exportsDir = getExportsDirectory();
+  const os = platform();
+  const isWindows = os === 'win32';
+  
+  // Detect IDE from environment
+  const isCursor = !!process.env.CURSOR_CWD;
+  const isVSCode = !!process.env.VSCODE_CWD;
+  
+  // Format path for display (escape backslashes on Windows)
+  const displayPath = isWindows ? exportsDir.replace(/\\/g, '\\\\') : exportsDir;
+  
+  const instructions: string[] = [];
+  
+  if (isVSCode) {
+    // VS Code specific instructions
+    instructions.push(
+      `1. In VS Code: Ctrl+Shift+P → "Export Chat"`,
+      `2. Name the file with a relevant name (e.g., "auth-implementation.json")`,
+      `3. Save to: ${displayPath}`,
+      `4. Say "use codearchitect store_session" and I'll automatically detect and store it!`
+    );
+  } else if (isCursor) {
+    // Cursor specific instructions
+    instructions.push(
+      `1. In Cursor chat, click the three dots (⋯) menu → "Export Chat"`,
+      `2. Save the file to: ${displayPath}`,
+      `3. Say "use codearchitect store_session" and I'll automatically detect and store it!`
+    );
+  } else {
+    // Generic instructions
+    instructions.push(
+      `1. Export chat from your IDE`,
+      `2. Save to: ${displayPath}`,
+      `3. Say "use codearchitect store_session" and I'll automatically detect and store it!`
+    );
+  }
+  
+  return {
+    folderPath: '~/.codearchitect/exports/',
+    instructions,
+    fullPath: exportsDir,
+  };
+}
+
+/**
+ * Finds the latest export file in the exports directory
+ * Only considers files modified in the last 10 minutes
+ */
+export async function findLatestExportFile(
+  exportsDir: string,
+  maxAgeMinutes: number = 10
+): Promise<{ path: string; filename: string; modified: Date } | null> {
+  try {
+    // Ensure directory exists
+    if (!existsSync(exportsDir)) {
+      return null;
+    }
+    
+    const files = await listFiles(exportsDir);
+    // Support both .md (Cursor) and .json (VS Code) exports
+    const exportFiles = files.filter(f => f.endsWith('.md') || f.endsWith('.json'));
+    
+    if (exportFiles.length === 0) {
+      return null;
+    }
+    
+    // Get file stats and filter by modification time
+    const now = Date.now();
+    const maxAge = maxAgeMinutes * 60 * 1000; // Convert to milliseconds
+    
+    const fileStats = await Promise.all(
+      exportFiles.map(async (filename) => {
+        const filePath = join(exportsDir, filename);
+        try {
+          const stats = await stat(filePath);
+          return {
+            path: filePath,
+            filename,
+            modified: stats.mtime,
+            age: now - stats.mtime.getTime(),
+          };
+        } catch {
+          return null;
+        }
+      })
+    );
+    
+    // Filter by age and sort by modification time (newest first)
+    const recentFiles = fileStats
+      .filter((f): f is NonNullable<typeof f> => f !== null && f.age <= maxAge)
+      .sort((a, b) => b.modified.getTime() - a.modified.getTime());
+    
+    if (recentFiles.length === 0) {
+      return null;
+    }
+    
+    const latest = recentFiles[0];
+    return {
+      path: latest.path,
+      filename: latest.filename,
+      modified: latest.modified,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Finds export file matching a pattern (case-insensitive)
+ * Returns the first match found
+ */
+export async function findExportFileByPattern(
+  exportsDir: string,
+  pattern: string
+): Promise<{ path: string; filename: string } | null> {
+  try {
+    if (!existsSync(exportsDir)) {
+      return null;
+    }
+    
+    const files = await listFiles(exportsDir);
+    // Support both .md (Cursor) and .json (VS Code) exports
+    const exportFiles = files.filter(f => f.endsWith('.md') || f.endsWith('.json'));
+    
+    const lowerPattern = pattern.toLowerCase();
+    const matchingFile = exportFiles.find(f => f.toLowerCase().includes(lowerPattern));
+    
+    if (!matchingFile) {
+      return null;
+    }
+    
+    return {
+      path: join(exportsDir, matchingFile),
+      filename: matchingFile,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Lists all export files in the exports directory
+ */
+export async function listExportFiles(exportsDir: string): Promise<string[]> {
+  try {
+    if (!existsSync(exportsDir)) {
+      return [];
+    }
+    const files = await listFiles(exportsDir);
+    // Support both .md (Cursor) and .json (VS Code) exports
+    return files.filter(f => f.endsWith('.md') || f.endsWith('.json'));
+  } catch {
+    return [];
   }
 }

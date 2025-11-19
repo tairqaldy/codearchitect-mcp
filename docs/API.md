@@ -4,27 +4,43 @@
 
 ### `codearchitect_help`
 
-Get help about features.
+Get feature help and workflow guide.
 
-**Usage**: `"use codearchitect"` or `"use codearchitect [feature_name]"`
+**Usage**: `"use codearchitect"` or `"use codearchitect [feature]"`
 
-**Response**: Lists available features with examples.
+**Parameters**:
+- `feature` (optional) - `store_session` or `get_session`
 
 ---
 
 ### `store_session`
 
-Save a conversation.
+Save conversation to knowledge base.
 
-**Usage**: `"use codearchitect store_session"` or `"use codearchitect store_session [topic]"`
+**Usage**: `"use codearchitect store_session"`
 
 **Parameters**:
-- `conversation` (required) - Full conversation text
-- `topic` (optional) - Session topic (auto-extracted if not provided)
-- `projectDir` (optional) - Project directory path. If specified, saves to both main folder and project folder
+- `conversation` (optional) - Direct conversation text/JSON
+- `exportFilename` (optional) - Pattern to match export file (e.g., "resolve_mcp")
+- `topic` (optional) - Session topic (auto-extracted)
+- `projectDir` (optional) - Also save to project folder
 - `format` (optional) - `"plain"` or `"messages"` (default: plain)
 
-**Saves to**: Main `.codearchitect/` folder in home directory (`~/.codearchitect/sessions/`) by default. If `projectDir` specified, also saves to `project/.codearchitect/sessions/`
+**Storage**:
+- Main: `~/.codearchitect/sessions/` (always)
+- Project: `project/.codearchitect/sessions/` (if `projectDir` specified)
+
+**Export file detection**:
+- Auto-detects from `~/.codearchitect/exports/`
+- Supports both `.md` (Cursor) and `.json` (VS Code) formats
+- Uses newest file modified in last 10 minutes
+- Or match by `exportFilename` pattern
+
+**Supported export formats**:
+- **Cursor**: Markdown format with `**User**` and `**Cursor**`/`**Assistant**` markers
+- **VS Code**: JSON format with nested `requests` array structure
+  - User messages: `request.message.text` or `request.message.parts[].text`
+  - Assistant messages: `request.response[]` (filters out tool invocations automatically)
 
 ---
 
@@ -33,60 +49,58 @@ Save a conversation.
 Retrieve saved sessions.
 
 **Usage**: 
-- `"use codearchitect get_session"` - List all sessions
-- `"use codearchitect get_session [filename]"` - Get specific session
-- `"use codearchitect get_session [date]"` - List sessions from date (YYYY-MM-DD)
+- `"use codearchitect get_session"` - List all
+- `"use codearchitect get_session [filename]"` - Get specific
+- `"use codearchitect get_session [date]"` - Filter by date (YYYY-MM-DD)
 
 **Parameters**:
 - `filename` (optional) - Session folder name
 - `date` (optional) - Filter by date (YYYY-MM-DD)
 - `format` (optional) - `"json"`, `"toon"`, or `"auto"` (default: auto)
-- `limit` (optional) - Limit number of sessions returned when listing
+- `limit` (optional) - Limit results when listing
 
-**Returns**: Session content or list of sessions. Always retrieves from main `.codearchitect/` folder in home directory.
+**Returns**: Session content or list. Always from main `~/.codearchitect/sessions/`
 
 ---
 
-## Storage Location
+## Storage Structure
 
-**Default**: Main `.codearchitect/sessions/` folder in home directory (always reliable)
-- Windows: `C:\Users\YourName\.codearchitect\sessions\`
-- Linux/Mac: `~/.codearchitect/sessions/`
-
-**Optional**: Project-specific save
-- If `projectDir` specified, also saves to `project/.codearchitect/sessions/`
-- Dual-save: Main folder (always) + project folder (optional)
-
-**Structure**:
 ```
-~/.codearchitect/sessions/
-└── YYYY-MM-DD/
-    └── topic-name/
-        ├── summary.md
-        └── full.md
+~/.codearchitect/
+├── exports/              # Export files (for auto-detection)
+│   └── cursor_*.md
+└── sessions/             # Saved sessions
+    └── YYYY-MM-DD/
+        └── topic-name/
+            ├── summary.md
+            └── full.md
 ```
 
 ---
 
 ## Examples
 
-**Store conversation**:
+**Store from export file**:
 ```
 use codearchitect store_session
 ```
 
 **Store with topic**:
 ```
-use codearchitect store_session "authentication implementation"
+use codearchitect store_session topic: "auth implementation"
 ```
 
-**Get specific session**:
+**Store to project**:
+```
+use codearchitect store_session projectDir: "/path/to/project"
+```
+
+**Get session**:
 ```
 use codearchitect get_session authentication-implementation
 ```
 
-**List today's sessions**:
+**List today**:
 ```
-use codearchitect get_session 2025-11-18
+use codearchitect get_session 2025-11-19
 ```
-

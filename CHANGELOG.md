@@ -5,6 +5,82 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.7] - 2025-11-19
+
+### Added
+- **Automatic export file detection**: `store_session` now automatically detects and processes Cursor/VS Code export files
+  - Users export conversations to `.codearchitect/exports/` folder
+  - Tool automatically finds newest export file (modified in last 10 minutes)
+  - No need to manually extract conversation from context
+- **VS Code JSON export support**: Full support for VS Code's complex JSON export format
+  - Automatically detects and parses `.json` export files
+  - Handles VS Code's nested structure: `{requests: [{message: {text: "..."}, response: [{value: "..."}]}]}`
+  - Extracts user messages from `request.message.text` or `request.message.parts[].text`
+  - Extracts assistant messages from `request.response[]` array, filtering out tool invocations
+  - Skips non-text items (tool invocations, system messages) automatically
+  - VS Code users: `Ctrl+Shift+P` → Export Chat → Name file → Save to exports folder
+- **Export filename pattern matching**: Added `exportFilename` parameter to match specific export files
+  - Example: `exportFilename: "resolve_mcp"` matches `cursor_resolve_mcp_configuration_issues.md` or `auth-implementation.json`
+  - Useful when multiple export files exist
+- **OS/IDE-specific instructions**: Tool provides platform-specific export folder paths
+  - Detects Windows/Mac/Linux automatically
+  - Detects Cursor vs VS Code automatically
+  - Provides IDE-specific export instructions (Cursor: markdown, VS Code: JSON with naming guidance)
+  - Provides exact folder path for user's environment
+
+### Changed
+- **Conversation parameter is now optional**: `store_session` can work without conversation parameter
+  - If conversation provided → uses it directly (backward compatible)
+  - If not provided → automatically looks for export file in `.codearchitect/exports/`
+- **Enhanced error messages**: Clear instructions when export file not found
+  - Step-by-step export instructions
+  - OS/IDE-specific folder paths
+  - Helpful error messages for edge cases
+
+### Technical
+- **New export parser**: Supports both Cursor (markdown) and VS Code (JSON) formats
+  - **Cursor**: Parses markdown with `**User**` and `**Cursor**`/`**Assistant**` markers
+  - **VS Code**: Parses complex nested JSON structure with `requests` array
+    - Extracts user messages from `request.message.text` or `request.message.parts[].text`
+    - Extracts assistant messages from `request.response[]` array
+    - Filters out tool invocations (`mcpServersStarting`, `prepareToolInvocation`, `toolInvocationSerialized`)
+    - Combines multiple response parts into coherent assistant messages
+  - Auto-detects format by file extension (`.md` vs `.json`)
+  - Preserves code blocks and formatting
+  - Converts to internal conversation format
+- **Export folder management**: Automatic creation and detection
+  - Creates `.codearchitect/exports/` folder if needed
+  - Finds files by modification time (supports both `.md` and `.json`)
+  - Supports pattern matching for specific files
+
+### Documentation
+- **Complete documentation overhaul**: Rewritten for precision and conciseness
+  - README: Streamlined quick start with clear steps and dropdown menus
+  - API docs: Precise tool reference with examples
+  - FAQ: Concise Q&A format
+  - Onboarding: Step-by-step workflow guide
+  - Troubleshooting: Specific fixes without fluff
+- **Global Cursor configuration**: Updated setup to use global config (more reliable)
+  - Windows: `C:\Users\YourName\.cursor\mcp.json`
+  - Mac/Linux: `~/.cursor/mcp.json`
+  - Works across all projects (not project-specific)
+  - Access via Cursor Settings → Tools & MCP
+- **Enhanced help tool**: Added iterative workflow guide
+  - 6-step knowledge base building process
+  - Storage locations clearly explained
+  - Tips for continuous knowledge growth
+  - Feature details with when-to-use guidance
+- **Separated IDE instructions**: Clear separation between Cursor and VS Code workflows
+  - Cursor: Markdown exports via three dots menu
+  - VS Code: JSON exports via command palette with naming guidance
+  - IDE-specific onboarding sections
+- **Verification step**: Clear setup verification instructions
+  - Check MCP status (green/connected)
+  - Test with `"use codearchitect"`
+  - Reload IDE instructions
+
+[0.1.7]: https://github.com/tairqaldy/codearchitect-mcp/releases/tag/v0.1.7
+
 ## [0.1.6] - 2025-11-18
 
 ### Changed
