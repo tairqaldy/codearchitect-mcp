@@ -10,12 +10,13 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { SessionStoreManager } from './store-session/index.js';
 import { SessionRetrievalManager } from './get-session/index.js';
+import { SessionSearchManager } from './search-session/index.js';
 import { handleError } from './shared/errors.js';
 
 const server = new Server(
   {
     name: 'codearchitect-mcp',
-    version: '0.1.7',
+    version: '0.1.8',
   },
   {
     capabilities: {
@@ -26,6 +27,7 @@ const server = new Server(
 
 const sessionStoreManager = new SessionStoreManager();
 const sessionRetrievalManager = new SessionRetrievalManager();
+const sessionSearchManager = new SessionSearchManager();
 
 // Feature information for help tool
 const FEATURES = {
@@ -60,6 +62,22 @@ const FEATURES = {
       'When you need past context',
     ],
     details: 'Retrieves from ~/.codearchitect/sessions/. Lists all if no params. Filter by filename or date. Next: Use store_session to save new conversations.',
+  },
+  search_session: {
+    name: 'search_session',
+    description: 'Search across all stored sessions',
+    usage: 'use codearchitect search_session [query]',
+    examples: [
+      'use codearchitect search_session "authentication"',
+      'use codearchitect search_session "database design" date: "2025-11-19"',
+      'use codearchitect search_session "API" limit: 10',
+    ],
+    when_to_use: [
+      'When looking for specific topics or keywords',
+      'When you remember discussing something but not the exact session name',
+      'When exploring your knowledge base',
+    ],
+    details: 'Searches through all sessions in ~/.codearchitect/sessions/. Returns matching sessions with relevance scores and context snippets. Supports date filtering and result limiting.',
   },
 };
 
@@ -129,7 +147,7 @@ server.setRequestHandler(ListToolsRequestSchema, async (): Promise<ListToolsResu
           properties: {
             feature: {
               type: 'string',
-              description: 'Optional: Specific feature name to get help for (store_session, get_session). If not provided, returns help for all features.',
+              description: 'Optional: Specific feature name to get help for (store_session, get_session, search_session). If not provided, returns help for all features.',
             },
           },
         },
@@ -265,6 +283,65 @@ After saving, return concise message:
           },
         },
       },
+      {
+        name: 'search_session',
+        description: `[CodeArchitect] Search across all stored sessions to find relevant conversations.
+
+=== WHEN TO USE ===
+- User says: "use codearchitect search_session [query]", "search for [topic]", "find sessions about [topic]"
+- User wants to find sessions by keyword or topic
+- User remembers discussing something but not the exact session name
+
+=== STORAGE BEHAVIOR ===
+- Always searches in main folder: ~/.codearchitect/sessions/ (user's home directory)
+- Searches through all date folders unless filtered
+
+=== SEARCH BEHAVIOR ===
+- Full-text search across topic, content, and messages
+- Case-insensitive matching
+- Returns relevance scores and context snippets
+- Results sorted by relevance (highest first), then by date (newest first)
+
+=== PARAMETERS ===
+- query (required): Search query string
+- date (optional): Filter by specific date (YYYY-MM-DD format)
+- dateFrom (optional): Filter from date (YYYY-MM-DD format)
+- dateTo (optional): Filter to date (YYYY-MM-DD format)
+- limit (optional): Limit number of results returned
+
+=== RESPONSE ===
+Returns matching sessions with:
+- Relevance score (0-1)
+- Matched snippets showing context
+- Match count
+- Session metadata (topic, date, filename)`,
+        inputSchema: {
+          type: 'object',
+          properties: {
+            query: {
+              type: 'string',
+              description: 'Required: Search query string to find in sessions',
+            },
+            date: {
+              type: 'string',
+              description: 'Optional: Filter sessions by specific date (YYYY-MM-DD format)',
+            },
+            dateFrom: {
+              type: 'string',
+              description: 'Optional: Filter sessions from this date onwards (YYYY-MM-DD format)',
+            },
+            dateTo: {
+              type: 'string',
+              description: 'Optional: Filter sessions up to this date (YYYY-MM-DD format)',
+            },
+            limit: {
+              type: 'number',
+              description: 'Optional: Limit number of results returned. Default: no limit',
+            },
+          },
+          required: ['query'],
+        },
+      },
     ],
   };
 });
@@ -395,6 +472,25 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
         : await sessionRetrievalManager.listSessions({
             date: args.date as string | undefined,
             format: (args.format as 'json' | 'toon' | 'auto') || 'auto',
+            limit: args.limit as number | undefined,
+          });
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(result),
+          },
+        ],
+      };
+    }
+
+    if (toolName === 'search_session') {
+      const result = await sessionSearchManager.searchSessions({
+        query: args.query as string,
+        date: args.date as string | undefined,
+        dateFrom: args.dateFrom as string | undefined,
+        dateTo: args.dateTo as string | undefined,
             limit: args.limit as number | undefined,
           });
 

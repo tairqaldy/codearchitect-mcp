@@ -5,6 +5,78 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8] - 2025-01-20
+
+### Added
+- **`search_session` tool**: New powerful search feature to find conversations across your knowledge base
+  - Full-text search across all stored sessions
+  - Searches in topics, content, and messages
+  - Case-insensitive matching
+  - Relevance scoring (0-1) with topic matches weighted higher
+  - Context snippets showing where matches were found
+  - Match count for each result
+  - Results sorted by relevance (highest first), then by date (newest first)
+- **Date filtering for search**: Filter search results by date or date range
+  - `date`: Filter by specific date (YYYY-MM-DD format)
+  - `dateFrom` / `dateTo`: Filter by date range
+- **Result limiting**: Limit number of search results returned
+  - `limit` parameter to control how many results you get
+- **Comprehensive search testing**: Full test suite with 24 test cases
+  - Tests basic search functionality
+  - Tests relevance scoring
+  - Tests snippet extraction
+  - Tests date filtering
+  - Tests result limiting and sorting
+  - Tests edge cases and error handling
+
+### Changed
+- **Enhanced help system**: Updated to include `search_session` feature
+  - Added search_session to feature list
+  - Updated help tool description
+  - Added search examples to workflow guide
+
+### Technical
+- **New SessionSearchManager class**: Core search implementation
+  - Scans all date folders in sessions directory
+  - Supports both new (topic folders) and old file structures
+  - Weighted relevance scoring (topic ×3, content ×2, messages ×1)
+  - Context snippet extraction (~150 chars before/after matches)
+  - Maximum 3 snippets per session to avoid clutter
+- **Search algorithm**: Simple but effective full-text search
+  - Case-insensitive string matching
+  - Counts all occurrences
+  - Normalizes scores to 0-1 range
+  - Handles empty queries and edge cases gracefully
+
+### Documentation
+- **Feature documentation**: Added 4 comprehensive feature docs in `dev-docs/`
+  - `FEATURE_STORE_SESSION.md` - How store_session works
+  - `FEATURE_GET_SESSION.md` - How get_session works
+  - `FEATURE_SEARCH_SESSION.md` - How search_session works
+  - `FEATURE_HELP.md` - How the help system works
+- **Developer-friendly docs**: Simple, clear explanations of each feature
+  - What each feature does
+  - How it works step-by-step
+  - When to use it
+  - Example flows
+  - Key components explained
+
+### Testing
+- **Comprehensive search tests**: 24 test cases covering all search functionality
+  - Basic search (4 tests)
+  - Relevance scoring (3 tests)
+  - Snippet extraction (2 tests)
+  - Date filtering (2 tests)
+  - Result limiting (2 tests)
+  - Result sorting (2 tests)
+  - Multiple keyword matching (2 tests)
+  - Case-insensitive search (1 test)
+  - Edge cases (5 tests)
+  - Integration tests (1 test)
+- **All tests passing**: 24/24 tests pass successfully
+
+[0.1.8]: https://github.com/tairqaldy/codearchitect-mcp/releases/tag/v0.1.8
+
 ## [0.1.7] - 2025-11-19
 
 ### Added

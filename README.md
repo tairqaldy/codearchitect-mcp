@@ -166,6 +166,7 @@ npm install -g codearchitect-mcp
 - `"use codearchitect"` - See features and workflow guide
 - `"use codearchitect store_session"` - Save conversation
 - `"use codearchitect get_session"` - Retrieve session
+- `"use codearchitect search_session [query]"` - Search across all sessions
 
 ## Storage
 
@@ -182,7 +183,8 @@ npm install -g codearchitect-mcp
 1. **Export chat** → Save to `~/.codearchitect/exports/`
 2. **Store session** → `"use codearchitect store_session"`
 3. **Retrieve** → `"use codearchitect get_session [topic]"`
-4. **Repeat** → Build knowledge base iteratively
+4. **Search** → `"use codearchitect search_session [query]"` - Find sessions by keyword
+5. **Repeat** → Build knowledge base iteratively
 
 ## Docs
 

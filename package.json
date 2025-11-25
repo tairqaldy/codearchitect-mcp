@@ -1,6 +1,6 @@
 {
   "name": "codearchitect-mcp",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Context continuity MCP server for developers. Solves AI conversation loss - automatically preserves architecture and code discussions for clear productivity advantage. Works seamlessly with Cursor and VS Code. Next: Full system design and architecture assistance.",
   "main": "dist/server.js",
   "type": "module",
